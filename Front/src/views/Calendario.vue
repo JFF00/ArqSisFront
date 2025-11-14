@@ -154,9 +154,7 @@ const calendarOptions = {
 .fc{
     font-family: "Outfit", sans-serif;
 }
-.fc-prev-button{
-    
-}
+
 .fc-toolbar-title{
     text-transform: capitalize;
     font-weight: bolder;

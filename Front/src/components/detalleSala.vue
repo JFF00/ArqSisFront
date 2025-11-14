@@ -55,6 +55,8 @@ const estados: EstadoBloque[] = ['disponible', 'ocupado', 'reservado'];
 // lista de bloques utilizada en el template
 const bloques: Bloques[] = ['A', 'B', 'C', 'D', 'E', 'F'];
 
+
+///ACÁ VAN LOS DATOS DE DISPONIBILIDAD POR SALA, CONECTAR AL BACK Y OBTENERLOS POR ID DE SALA
 const disponibilidad = ref<Record<Bloques, EstadoBloque[]>>({
   A: ['disponible', 'ocupado', 'disponible', 'reservado', 'disponible'] as const,
   B: ['ocupado', 'ocupado', 'disponible', 'disponible', 'disponible'] as const,
@@ -65,10 +67,9 @@ const disponibilidad = ref<Record<Bloques, EstadoBloque[]>>({
 });
 
 const cambiarEstado = (bloque: Bloques, index: number) => {
-  const fila = disponibilidad.value[bloque] as EstadoBloque[]; // forzamos tipo mutable
-  // validar índice y existencia del estado actual
+  const fila = disponibilidad.value[bloque] as EstadoBloque[]; 
   if (index < 0 || index >= fila.length) return;
-  const estadoActual = fila[index]; // ahora garantizado definido
+  const estadoActual = fila[index]; 
   if (estadoActual === undefined) return;
   const idx = estados.indexOf(estadoActual);
   const nextEstado = estados[(idx + 1) % estados.length];
@@ -78,18 +79,11 @@ const cambiarEstado = (bloque: Bloques, index: number) => {
 };
 
 
+
+////LOGICA PARA CAMBIAR ESTADOS Y GUARDARLOS EN BACKEND. ACTUALIZAR SEGUN BACKEND, SOLO LO QUE CAMBIA.
 const guardarCambios = () => {
-  // Aquí puedes enviar disponibilidad.value a tu backend
+  
   console.log('Disponibilidad actual:', disponibilidad.value);
-
-  // Ejemplo: si tuvieras un API:
-  // fetch('/api/salas/' + sala.id + '/disponibilidad', {
-  //   method: 'POST',
-  //   headers: { 'Content-Type': 'application/json' },
-  //   body: JSON.stringify(disponibilidad.value)
-  // }).then(res => console.log('Guardado!', res))
-  //   .catch(err => console.error(err));
-
   alert('Cambios guardados con éxito!');
 };
 </script>
