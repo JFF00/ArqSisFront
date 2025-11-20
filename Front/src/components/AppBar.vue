@@ -22,6 +22,7 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   z-index: 10;
   width: 100%;
+
 }
 .logo{
     width: 75px;
@@ -33,6 +34,8 @@
 }
 .title{
     font-family: "Cal Sans", sans-serif;
-    font-weight: 500;
+    font-weight: bolder;
+    font-size: 2.5rem;
+    margin-left: 2%;
 }
 </style>

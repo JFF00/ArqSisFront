@@ -1,157 +1,142 @@
 <template>
-  <div class="container">
-    <!-- Columna izquierda: tabla -->
-    <div class="left-panel">
-      <h1 class="titulo">Listado de salas</h1>
-      <div class="tabla-container">
-        <table class="tabla">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Nombre</th>
-              <th>Capacidad</th>
-              <th>Ver</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="sala in salas" :key="sala.id">
-              <td>{{ sala.id }}</td>
-              <td>{{ sala.nombre }}</td>
-              <td>{{ sala.capacidad }}</td>
-              <td>
-                <i class="fa-solid fa-eye" @click="seleccionarSala(sala)" style="cursor:pointer;"></i>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      
-    </div>
+  <div class="solicitudes-container">
+    <h1 class="title">Solicitudes</h1>
 
-    <!-- Columna derecha: detalle -->
-    <div class="right-panel">
-      <DetalleSala v-if="salaSeleccionada" :sala="salaSeleccionada" />
-      <div v-else class="placeholder">
-        Selecciona una sala para ver detalles
-      </div>
+    <div class="table-wrapper">
+      <table class="tabla-solicitudes">
+        <thead>
+          <tr>
+            <th>Sala</th>
+            <th>Motivo</th>
+            <th>Encargado</th>
+            <th>Horario</th>
+            <th>Fecha</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr v-for="solicitud in solicitudes" :key="solicitud.id">
+            <td>{{ solicitud.sala }}</td>
+            <td>{{ solicitud.motivo }}</td>
+            <td>{{ solicitud.encargado }}</td>
+            <td>{{ solicitud.horario }}</td>
+            <td>{{ solicitud.fecha }}</td>
+            <td class="acciones">
+              <button class="btn aceptar" @click="aceptar(solicitud.id)">Aceptar</button>
+              <button class="btn rechazar" @click="rechazar(solicitud.id)">Rechazar</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </template>
 
-<script setup lang ="ts">
-import { ref } from "vue";
-import type { Sala } from "@/interfaces/salas"
-import DetalleSala from "@/components/detalleSala.vue";
+<script setup lang="ts">
+import { ref } from 'vue'
 
-const salaSeleccionada = ref<Sala | null>(null);
- 
-const salas = ref<Sala[]>([
-  { id: 1, nombre: "Sala A", capacidad: 20 },
-  { id: 2, nombre: "Sala B", capacidad: 15 },
-  { id: 3, nombre: "Sala C", capacidad: 25 }
+interface Solicitud {
+  id: number
+  sala: string
+  motivo: string
+  encargado: string
+  horario: string
+  fecha: string
+}
+
+const solicitudes = ref<Solicitud[]>([
+  {
+    id: 1,
+    sala: 'Sala A',
+    motivo: 'Reunión académica',
+    encargado: 'Juan Pérez',
+    horario: 'Bloque B',
+    fecha: '2025-11-25',
+  },
+  {
+    id: 2,
+    sala: 'Sala C',
+    motivo: 'Capacitación',
+    encargado: 'María López',
+    horario: 'Bloque D',
+    fecha: '2025-11-27',
+  },
 ])
 
-const agregarSala = () => {
-  const nuevaSala = {
-    id: salas.value.length + 1,
-    nombre: `Sala ${String.fromCharCode(64 + salas.value.length + 1)}`,
-    capacidad: Math.floor(Math.random() * 30) + 10,
-    estado: "Disponible"
-  }
-  salas.value.push(nuevaSala)
+function aceptar(id: number) {
+  console.log('Solicitud aceptada:', id)
+  // lógica backend aquí
 }
 
-const seleccionarSala = (sala: Sala) => {
-  salaSeleccionada.value = sala;
-};
-
+function rechazar(id: number) {
+  console.log('Solicitud rechazada:', id)
+  // lógica backend aquí
+}
 </script>
-    
-
-
 
 <style scoped>
-.container{
+.solicitudes-container {
+  width: 100%;
   display: flex;
-  flex-direction: row;
-  height: 100%;
-  gap: 120px;
-}
-.tabla-container {
-  width: max-content;
-  min-width: 600px;
-  overflow-x: auto;
-  border-collapse: collapse;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: row;
-  }
-
-.titulo {
-  margin-bottom: 16px;
-  text-align: center;
-  font-family: 'Outfit',sans-serif;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.tabla {
+.title {
+  font-family: 'Cal Sans', sans-serif;
+  font-size: 2rem;
+  font-weight: bold;
+  text-align: left;
+}
+
+/* Permite scroll SOLO en la tabla */
+.table-wrapper {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #ccc;
+}
+
+.tabla-solicitudes {
   width: 100%;
   border-collapse: collapse;
-  min-width: 600px;
 }
 
-.tabla th{
-    position: sticky;
-  top: 0;                  /* se mantiene en la parte superior */
-  background-color: #f2f2f2;
-  z-index: 1;              /* por si hay contenido que se sobrepone */
+th,
+td {
+  padding: 10px;
   border: 1px solid #ccc;
-  padding: 8px;
-  font-family:"Inter",sans-serif ;
-
-}
-.tabla td {
-  border: 1px solid #ccc;
-  padding: 8px;
-  text-align: center;
-  white-space: nowrap;
-  font-family:'Inter',sans-serif ;
-
+  font-family: 'Outfit', sans-serif;
 }
 
-.tabla th {
-  background-color: #f2f2f2;
+th {
+  background: #f4f4f4;
+  font-weight: bold;
 }
 
-.icono-columna {
-  text-align: center;
-}
-
-.agregar {
-  margin-top: 12px;
-  padding: 8px 16px;
-  background-color: #0077cc;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-    font-family:'Inter',sans-serif ;
-
-}
-.agregar:hover {
-  background-color: #005fa3;
-}
-.left-panel{
-  flex: 1;                    /* ocupa proporción del contenedor */
+.acciones {
   display: flex;
-  flex-direction: column;     /* para que botón quede debajo */
-  min-width: 0;   
+  gap: 6px;
+  justify-content: center;
 }
-.right-panel{
-  flex: 2;
- 
-  border-radius: 8px;
-  padding: 16px;
-  min-height: 400px;
-  margin-left: 300px;
+
+.btn {
+  padding: 6px 10px;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+}
+
+.aceptar {
+  background-color: #4caf50;
+}
+
+.rechazar {
+  background-color: #f44336;
+}
+
+.btn:hover {
+  opacity: 0.8;
 }
 </style>
