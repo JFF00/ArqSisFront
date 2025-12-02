@@ -2,7 +2,10 @@
     <div>
         <header class="appbar">
             <h1 class ="title"> Salas PACE UCN</h1>
-            <img src="@/assets/LogoUCN_acentuado.png" class="logo"></img>
+            <div class="logos">
+                <img src="@/assets/pace.png" class="logo">
+                <img src="@/assets/LogoUCN_acentuado.png" class="logo">
+            </div>
         </header>        
     </div>
    
@@ -24,18 +27,25 @@
   width: 100%;
 
 }
+.logos {
+    display: flex;
+    align-items: center;
+    margin-right: 5%;
+    gap: 15px;
+}
 .logo{
     width: 75px;
     height: 75px;
-    margin-right: 5%;
-    margin-top: 1%;
-    margin-bottom: 1%;
-    object-fit: cover;
+    object-fit: contain;
 }
 .title{
     font-family: "Cal Sans", sans-serif;
     font-weight: bolder;
     font-size: 2.5rem;
     margin-left: 2%;
+    margin-top: 0;
+    margin-bottom: 0;
+    line-height: 1;
+    align-self: center;
 }
 </style>

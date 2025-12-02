@@ -16,12 +16,12 @@ import SideNav from "@/components/SideNav.vue"
 .contenedorNav{
     display: flex;
     flex-direction: column;
-    height: 100%;
+    min-height: 100vh;
     flex:1;
 }
 main{
     flex:1;
-    margin-top: 50px;
+    margin-top: 130px;
     padding:16px;
     display: flex;
     flex-direction: row;

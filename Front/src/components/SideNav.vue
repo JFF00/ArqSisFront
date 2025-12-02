@@ -3,15 +3,24 @@
         <header class="sidebar">
             <RouterLink to="/" class="link">Reservas</RouterLink>
             <RouterLink to="/salas" class="link">Detalle salas </RouterLink>
-            <RouterLink to="/admin" class="link">Administrar</RouterLink>
+            <RouterLink v-if="authStore.isAdmin" to="/admin" class="link">Administrar</RouterLink>
+            <button @click="handleLogout" class="link logout-btn">Cerrar Sesión</button>
         </header>        
     </div>
    
 </template>
 
 <script setup lang="ts">
-import { RouterLink } from 'vue-router';
+import { RouterLink, useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
 
+const router = useRouter();
+const authStore = useAuthStore();
+
+const handleLogout = async () => {
+  await authStore.logout();
+  router.push('/login');
+};
 </script>
 
 
@@ -40,6 +49,19 @@ import { RouterLink } from 'vue-router';
     justify-content: center;
     padding: 10px 20px;
     font-size: larger;
+    text-decoration: none;
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+
+.logout-btn {
+    margin-left: auto;
+    color: #d32f2f;
+}
+
+.logout-btn:hover {
+    background-color: rgba(211, 47, 47, 0.1);
 }
 
 </style>

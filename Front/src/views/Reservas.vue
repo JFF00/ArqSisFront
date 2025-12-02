@@ -25,9 +25,8 @@
 
       <!-- PASO CRÍTICO: pasar disponibilidad + sala -->
     </div>
-    <div class="detalle-container">
+    <div class="detalle-container" v-if="mostrarDetalle">
       <DetalleSala
-        v-if="mostrarDetalle"
         :sala="salaSeleccionada"
         :disponibilidad="disponibilidad"
       />
@@ -168,6 +167,8 @@ function abrirDetalle(sala: Sala) {
   font-family: 'Cal Sans', sans-serif;
   font-weight: bolder;
   font-size: 2rem;
+  text-align: center;
+  margin-bottom: 1rem;
 }
 .full-container {
   margin-top: 20px;
@@ -179,12 +180,16 @@ function abrirDetalle(sala: Sala) {
   width: 40%;
   overflow-y: auto;
   height: 70vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 .table {
   border: 1px solid #b4afafff;
   border-radius: 3px;
   border-collapse: separate;
   border-spacing: 0;
+  width: 100%;
 }
 .table-head,
 th {
