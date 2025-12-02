@@ -19,7 +19,7 @@ export const useAuthStore = defineStore('auth', () => {
   const loading = ref(true);
 
   const isAuthenticated = computed(() => !!user.value);
-  const isAdmin = computed(() => userRole.value === 'Admin');
+  const isAdmin = computed(() => userRole.value?.toUpperCase() === 'ADMIN');
 
   // Inicializar el estado de autenticación
   const initAuth = () => {
@@ -63,7 +63,6 @@ export const useAuthStore = defineStore('auth', () => {
         throw new Error('Usuario no autorizado en el sistema');
       }
       
-      console.log('Usuario validado en backend:', data.me);
       userRole.value = data.me.rol;
       return data.me;
     } catch (error: any) {
