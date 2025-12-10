@@ -5,6 +5,7 @@ import Administrar from '@/views/Administrar.vue'
 import Reservas from '@/views/Reservas.vue'
 import Login from '@/views/Login.vue'
 import { useAuthStore } from '@/stores/auth'
+import Notificaciones from '@/views/Notificaciones.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -21,6 +22,7 @@ const router = createRouter({
       meta: { requiresAuth: true },
       children: [
         { path: '', name: 'home', component: Reservas },
+        {path: '/notificaciones',name:'notificaciones',component:Notificaciones},
         { path: '/salas', name: 'detalleSalas', component: ObservacionSalas },
         { path: '/admin', name: 'administrarSalas', component: Administrar },
       ],

@@ -22,144 +22,66 @@
           </tr>
         </tbody>
       </table>
-
-      <!-- PASO CRÍTICO: pasar disponibilidad + sala -->
     </div>
+
     <div class="detalle-container" v-if="mostrarDetalle">
       <DetalleSala
         :sala="salaSeleccionada"
-        :disponibilidad="disponibilidad"
+        :disponibilidad="disponibilidad[salaSeleccionada?.nombre]"
       />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, reactive, onMounted } from 'vue'
+import { apolloClient } from '@/apollo'
+import { GET_SALAS } from '@/graphql/salas/querySalas'
+import DetalleSala from '@/components/detalleSala.vue'
 import type { Sala } from '@/interfaces/salas'
-import DetalleSala from '@/components/detalleSala.vue' // nombre consistente
-import { ref, reactive } from 'vue'
 
+// Estados
+const salas = ref<Sala[]>([])
 const mostrarDetalle = ref(false)
 const salaSeleccionada = ref<Sala | null>(null)
 
-// uso reactive para mantener reactividad si el hijo modifica disponibilidad
+// Disponibilidad simulada por nombre de sala
 const disponibilidad = reactive({
-  A: {
+  'X-107': {
     lunes: 'disponible',
     martes: 'ocupado',
     miercoles: 'reservado',
     jueves: 'disponible',
     viernes: 'ocupado',
   },
-  B: {
-    lunes: 'disponible',
-    martes: 'disponible',
-    miercoles: 'ocupado',
-    jueves: 'reservado',
-    viernes: 'disponible',
-  },
-  C: {
-    lunes: 'reservado',
-    martes: 'ocupado',
-    miercoles: 'disponible',
-    jueves: 'disponible',
-    viernes: 'ocupado',
-  },
-  D: {
-    lunes: 'disponible',
-    martes: 'disponible',
-    miercoles: 'disponible',
-    jueves: 'ocupado',
-    viernes: 'reservado',
-  },
-  E: {
-    lunes: 'ocupado',
-    martes: 'disponible',
-    miercoles: 'reservado',
-    jueves: 'disponible',
-    viernes: 'disponible',
-  },
-  F: {
-    lunes: 'disponible',
-    martes: 'ocupado',
-    miercoles: 'disponible',
-    jueves: 'reservado',
-    viernes: 'ocupado',
-  },
+  // puedes agregar más salas según la respuesta de GraphQL
 })
 
-const salas: Sala[] = [
-  {
-    id: 1,
-    nombre: 'Sala A',
-    capacidad: 20,
-    ubicacion: 'Edificio Central, Piso 1',
-    descripcion: 'Sala equipada para clases pequeñas',
-    recursos: ['Proyector', 'Pizarra', 'Aire acondicionado'],
-  },
-  {
-    id: 2,
-    nombre: 'Sala B',
-    capacidad: 35,
-    ubicacion: 'Edificio Ciencias, Piso 2',
-    descripcion: 'Sala multimedia con audio reforzado',
-    recursos: ['Proyector', 'Sistema de audio', 'Computador'],
-  },
-  {
-    id: 3,
-    nombre: 'Sala C',
-    capacidad: 50,
-    ubicacion: 'Edificio Biblioteca, Piso 3',
-    descripcion: 'Auditorio pequeño',
-    recursos: ['Micrófonos', 'Proyector', 'Butacas'],
-  },
-  {
-    id: 1,
-    nombre: 'Sala A',
-    capacidad: 20,
-    ubicacion: 'Edificio Central, Piso 1',
-    descripcion: 'Sala equipada para clases pequeñas',
-    recursos: ['Proyector', 'Pizarra', 'Aire acondicionado'],
-  },
-  {
-    id: 2,
-    nombre: 'Sala B',
-    capacidad: 35,
-    ubicacion: 'Edificio Ciencias, Piso 2',
-    descripcion: 'Sala multimedia con audio reforzado',
-    recursos: ['Proyector', 'Sistema de audio', 'Computador'],
-  },
-  {
-    id: 3,
-    nombre: 'Sala C',
-    capacidad: 50,
-    ubicacion: 'Edificio Biblioteca, Piso 3',
-    descripcion: 'Auditorio pequeño',
-    recursos: ['Micrófonos', 'Proyector', 'Butacas'],
-  },
-  {
-    id: 1,
-    nombre: 'Sala A',
-    capacidad: 20,
-    ubicacion: 'Edificio Central, Piso 1',
-    descripcion: 'Sala equipada para clases pequeñas',
-    recursos: ['Proyector', 'Pizarra', 'Aire acondicionado'],
-  },
-  {
-    id: 2,
-    nombre: 'Sala B',
-    capacidad: 35,
-    ubicacion: 'Edificio Ciencias, Piso 2',
-    descripcion: 'Sala multimedia con audio reforzado',
-    recursos: ['Proyector', 'Sistema de audio', 'Computador'],
-  },
-]
+// Fetch GraphQL
+const fetchSalas = async () => {
+  try {
+    const { data } = await apolloClient.query({
+      query: GET_SALAS,
+      fetchPolicy: 'network-only'
+    })
+    salas.value = data.salas
+  } catch (error) {
+    console.error('Error cargando salas:', error)
+  }
+}
 
+// Abrir detalle
 function abrirDetalle(sala: Sala) {
   salaSeleccionada.value = sala
   mostrarDetalle.value = true
 }
+
+// Ejecutar al montar
+onMounted(() => {
+  fetchSalas()
+})
 </script>
+
 
 <style>
 /* tu CSS (mantén .fa-eye cursor pointer) */
@@ -170,51 +92,85 @@ function abrirDetalle(sala: Sala) {
   text-align: center;
   margin-bottom: 1rem;
 }
+
+/* CONTENEDOR PRINCIPAL → 2 COLUMNAS MISMA ALTURA */
 .full-container {
   margin-top: 20px;
-  justify-content: center;
   display: flex;
+  justify-content: center;
+  gap: 20px;
   width: 100%;
+  height: 80vh;                  /* ← MISMA ALTURA PARA AMBAS COLUMNAS */
+  box-sizing: border-box;
 }
+
+/* COLUMNA DE LA TABLA */
 .table-container {
   width: 40%;
   overflow-y: auto;
-  height: 70vh;
+  height: 100%;                  /* ← SE AJUSTA A LA ALTURA DEL PADRE */
   display: flex;
   flex-direction: column;
   align-items: center;
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
 }
+
+/* TABLA */
 .table {
-  border: 1px solid #b4afafff;
-  border-radius: 3px;
+  width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  width: 100%;
+  border: 1px solid #c8c6c6;
+  border-radius: 6px;
+  font-family: "Outfit", sans-serif;
 }
-.table-head,
-th {
-  color: #4d4a4aff;
-  border: 1px solid #c2bdbdff;
-  background-color: #f5f2f2ff;
-  padding: 15px;
+
+/* ENCABEZADO */
+.table-head, th {
+  background-color: #f5f2f2;
+  color: #4d4a4a;
+  font-family: "Cal Sans", sans-serif;
+  padding: 12px;
+  border: 1px solid #c2bdbd;
   position: sticky;
   top: 0;
-  z-index: 1;
 }
+
+/* CUERPO */
 td {
-  border: 1px solid #dfd9d9ff;
+  border: 1px solid #dfd9d9;
+  padding: 8px;
   text-align: center;
-  padding: 5px;
+  font-family: "Outfit", sans-serif;
 }
+
 .table-body {
-  border: 1px solid #979292ff;
+  border: 1px solid #979292;
 }
+
+/* ICONO */
 .fa-eye {
   cursor: pointer;
-  color: #4d4a4aff;
+  color: #4d4a4a;
+  transition: 0.15s;
 }
+
+.fa-eye:hover {
+  color: #2d8cff;
+}
+
+/* COLUMNA DEL DETALLE */
 .detalle-container {
   width: 50%;
-  margin-left: 20px;
+  height: 100%;                /* ← MISMA ALTURA QUE LA TABLA */
+  overflow-y: auto;            /* ← SCROLL INTERNO */
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 15px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
 }
+
 </style>

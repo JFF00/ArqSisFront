@@ -1,7 +1,7 @@
 <template>
   <div class="detalle-sala">
-    <h2>{{ sala.nombre }}</h2>
-    <p><strong>Capacidad:</strong> {{ sala.capacidad }}</p>
+    <h2>{{ sala?.nombre }}</h2>
+    <p><strong>Capacidad:</strong> {{ sala?.capacidad }}</p>
 
     <div class="tabla-container">
       <table class="tabla-style">
@@ -34,7 +34,7 @@
 
     <!-- Mostrar lo seleccionado -->
     <div v-if="seleccion.bloque" class="seleccion-info">
-      🟢 Seleccionaste: <strong>{{ seleccion.sala }}</strong> — Bloque
+       Seleccionaste: <strong>{{ seleccion.sala }}</strong> — Bloque
       <strong>{{ seleccion.bloque }}</strong> — Día
       <strong>{{ seleccion.dia }}</strong>
     </div>
@@ -67,7 +67,7 @@ import { ref } from 'vue'
 import type { Sala } from '@/interfaces/salas'
 
 const { sala, disponibilidad } = defineProps<{
-  sala: Sala
+  sala: Sala | null
   disponibilidad: any
 }>()
 
@@ -90,7 +90,7 @@ const seleccion = ref({
 
 function seleccionarBloque(bloque: Bloque, dia: Dia) {
   seleccion.value = {
-    sala: sala.nombre,
+    sala: sala?.nombre || '',
     bloque,
     dia,
   }
@@ -105,7 +105,7 @@ function formatearFechaLocal(date: Date): string {
   return `${y}-${m}-${d}`
 }
 
-function obtenerProximasFechas(dia: string, cantidad = 4): string[] {
+function obtenerProximasFechas(dia: Dia, cantidad = 4): string[] {
   const diasIndice: Record<string, number> = {
     lunes: 1,
     martes: 2,
@@ -119,6 +119,10 @@ function obtenerProximasFechas(dia: string, cantidad = 4): string[] {
 
   const targetIndex = diasIndice[dia]
 
+    if(targetIndex==undefined){
+      console.warn("Día inválido para reservar",dia)
+      return[]
+    }
   let diff = targetIndex - hoyDia
   if (diff < 0) diff += 7 // siguiente semana si ya pasó
 
@@ -145,64 +149,141 @@ Motivo: ${motivoSeleccionado.value}
 </script>
 
 <style scoped>
+/* CONTENEDOR PRINCIPAL */
 .detalle-sala {
-  font-family: 'Cal Sans', sans-serif;
-}
-
-.tabla-style {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th,
-td {
   font-family: 'Outfit', sans-serif;
-  font-weight: 500;
-  border: 1px solid #ccc;
-  padding: 4px;
-  text-align: center;
-}
-
-.cuadro-estado {
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
+  padding: 2rem;
+  max-width: 900px;
   margin: 0 auto;
 }
 
-/* Colores */
-.disponible {
-  background-color: #4caf50;
+/* TÍTULO DE LA SALA */
+.detalle-sala h2 {
+  font-family: 'Cal Sans', sans-serif;
+  font-size: 2rem;
+  margin-bottom: 10px;
+  text-align: center;
 }
 
-.ocupado {
-  background-color: #f44336;
+/* TEXTO PRINCIPAL */
+.detalle-sala p {
+  font-size: 1rem;
+  margin-bottom: 1rem;
+  text-align: center;
 }
 
-.reservado {
-  background-color: #ff9800;
+/* CONTENEDOR DE TABLA */
+.tabla-container {
+  margin-top: 1.5rem;
+  overflow-x: auto;
 }
 
-.seleccion-info {
-  margin-top: 12px;
+/* TABLA */
+.tabla-style {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+
+/* HEADERS */
+th {
+  background: #f4f4f4;
+  font-family: 'Cal Sans', sans-serif;
+  font-size: 0.9rem;
   padding: 10px;
-  background: #e8ffe8;
-  border-left: 4px solid #4caf50;
-  font-size: 14px;
-  font-family: 'Outfit', sans-serif;
 }
+
+/* CELDAS */
+td {
+  padding: 6px;
+  border: 1px solid #e0e0e0;
+}
+
+/* BLOQUES CUADRADOS */
+.cuadro-estado {
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  margin: 0 auto;
+  transition: transform 0.15s ease;
+}
+
+.cuadro-estado:hover {
+  transform: scale(1.1);
+}
+
+/* COLORES DE ESTADO */
+.disponible { background-color: #49b86c; }
+.ocupado    { background-color: #ef5350; }
+.reservado  { background-color: #ffb74d; }
+
+/* INFO DE SELECCIÓN */
+.seleccion-info {
+  margin-top: 20px;
+  padding: 12px 14px;
+  background: #e8ffe8;
+  border-left: 5px solid #4caf50;
+  font-family: 'Outfit', sans-serif;
+  border-radius: 6px;
+  font-size: 15px;
+}
+
+/* SELECTORES DE FECHA Y MOTIVO */
+.fecha-selector {
+  margin-top: 20px;
+  text-align: center;
+}
+
+.select {
+  font-family: 'Cal Sans', sans-serif;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+/* SELECT MODERNO */
+select {
+  padding: 10px;
+  width: 70%;
+  max-width: 300px;
+  margin: 6px 0;
+  border: 1px solid #bdbdbd;
+  border-radius: 6px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.95rem;
+  background: white;
+  transition: all 0.2s ease;
+}
+
+select:focus {
+  border-color: #4caf50;
+  box-shadow: 0 0 6px rgba(76, 175, 80, 0.4);
+  outline: none;
+}
+
+/* BOTÓN */
 .btn-enviar {
-  margin-top: 16px;
-  padding: 10px 20px;
+  margin-top: 22px;
+  padding: 12px 24px;
   font-family: 'Outfit', sans-serif;
   background-color: #4caf50;
   color: white;
+  font-size: 1rem;
   border: none;
-  border-radius: 4px;
+  border-radius: 8px;
   cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease;
 }
-.select {
-  font-family: 'Outfit', sans-serif;
-  font-weight: 600;
+
+.btn-enviar:hover {
+  background-color: #43a047;
 }
+
+.btn-enviar:active {
+  transform: scale(0.97);
+}
+
 </style>
