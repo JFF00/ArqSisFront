@@ -65,6 +65,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import type { Sala } from '@/interfaces/salas'
+import { useMutation } from '@vue/apollo-composable'
+import { CREATE_RESERVATION } from '@/graphql/reservas/mutationReservas'
 
 const { sala, disponibilidad } = defineProps<{
   sala: Sala | null
@@ -73,6 +75,15 @@ const { sala, disponibilidad } = defineProps<{
 
 type Dia = 'lunes' | 'martes' | 'miercoles' | 'jueves' | 'viernes'
 type Bloque = 'A' | 'B' | 'C' | 'D' | 'E' | 'F'
+
+const bloquesHorarios: Record<string, { start: string; end: string }> = {
+  A: { start: '08:10', end: '09:40' },
+  B: { start: '09:55', end: '11:25' },
+  C: { start: '11:40', end: '13:10' },
+  D: { start: '14:30', end: '16:00' },
+  E: { start: '16:15', end: '17:45' },
+  F: { start: '18:00', end: '19:30' },
+}
 
 const dias: Dia[] = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes']
 const bloques: Bloque[] = ['A', 'B', 'C', 'D', 'E', 'F']
@@ -86,6 +97,21 @@ const seleccion = ref({
   sala: '',
   bloque: '',
   dia: '',
+})
+
+const { mutate: createReservation, onDone, onError } = useMutation(CREATE_RESERVATION)
+
+onDone((result) => {
+  alert(`Reserva creada con éxito! ID: ${result.data.createReservation.id} - Estado: ${result.data.createReservation.status}`)
+  // Reset selection
+  fechaSeleccionada.value = ''
+  motivoSeleccionado.value = ''
+  seleccion.value = { sala: '', bloque: '', dia: '' }
+})
+
+onError((error) => {
+  console.error(error)
+  alert('Error al crear la reserva: ' + error.message)
 })
 
 function seleccionarBloque(bloque: Bloque, dia: Dia) {
@@ -138,13 +164,26 @@ function obtenerProximasFechas(dia: Dia, cantidad = 4): string[] {
 }
 
 function enviarSolicitud() {
-  alert(`
-Solicitando sala ${seleccion.value.sala}
-Fecha: ${fechaSeleccionada.value}
-Bloque: ${seleccion.value.bloque}
-Día: ${seleccion.value.dia}
-Motivo: ${motivoSeleccionado.value}
-  `)
+  if (!fechaSeleccionada.value || !seleccion.value.bloque || !sala) return
+
+  const bloqueInfo = bloquesHorarios[seleccion.value.bloque]
+  if (!bloqueInfo) {
+    alert('Bloque horario no válido')
+    return
+  }
+
+  // Crear fechas en UTC para enviar al backend
+  const startDateTime = new Date(`${fechaSeleccionada.value}T${bloqueInfo.start}:00`)
+  const endDateTime = new Date(`${fechaSeleccionada.value}T${bloqueInfo.end}:00`)
+
+  createReservation({
+    input: {
+      room_id: Number(sala.id),
+      start_time: startDateTime.toISOString(),
+      end_time: endDateTime.toISOString(),
+      purpose: motivoSeleccionado.value || 'Reserva desde Front',
+    }
+  })
 }
 </script>
 

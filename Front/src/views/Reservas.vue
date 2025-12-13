@@ -27,7 +27,7 @@
     <div class="detalle-container" v-if="mostrarDetalle">
       <DetalleSala
         :sala="salaSeleccionada"
-        :disponibilidad="disponibilidad[salaSeleccionada?.nombre]"
+        :disponibilidad="disponibilidad[salaSeleccionada?.nombre] || disponibilidadDefault"
       />
     </div>
   </div>
@@ -45,16 +45,22 @@ const salas = ref<Sala[]>([])
 const mostrarDetalle = ref(false)
 const salaSeleccionada = ref<Sala | null>(null)
 
-// Disponibilidad simulada por nombre de sala
+// Disponibilidad simulada por defecto (todo disponible)
+const disponibilidadDefault = {
+  A: { lunes: 'disponible', martes: 'disponible', miercoles: 'disponible', jueves: 'disponible', viernes: 'disponible' },
+  B: { lunes: 'disponible', martes: 'disponible', miercoles: 'disponible', jueves: 'disponible', viernes: 'disponible' },
+  C: { lunes: 'disponible', martes: 'disponible', miercoles: 'disponible', jueves: 'disponible', viernes: 'disponible' },
+  D: { lunes: 'disponible', martes: 'disponible', miercoles: 'disponible', jueves: 'disponible', viernes: 'disponible' },
+  E: { lunes: 'disponible', martes: 'disponible', miercoles: 'disponible', jueves: 'disponible', viernes: 'disponible' },
+  F: { lunes: 'disponible', martes: 'disponible', miercoles: 'disponible', jueves: 'disponible', viernes: 'disponible' },
+}
+
+// Disponibilidad específica (ejemplo)
 const disponibilidad = reactive({
   'X-107': {
-    lunes: 'disponible',
-    martes: 'ocupado',
-    miercoles: 'reservado',
-    jueves: 'disponible',
-    viernes: 'ocupado',
+    A: { lunes: 'disponible', martes: 'ocupado', miercoles: 'reservado', jueves: 'disponible', viernes: 'ocupado' },
+    // ... rellenar estructura completa si se desea
   },
-  // puedes agregar más salas según la respuesta de GraphQL
 })
 
 // Fetch GraphQL
