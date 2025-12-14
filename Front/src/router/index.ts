@@ -6,6 +6,7 @@ import Reservas from '@/views/Reservas.vue'
 import Login from '@/views/Login.vue'
 import { useAuthStore } from '@/stores/auth'
 import Notificaciones from '@/views/Notificaciones.vue'
+import Salas from '@/views/Salas.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -14,7 +15,7 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: Login,
-      meta: { requiresAuth: false }
+      meta: { requiresAuth: false },
     },
     {
       path: '/',
@@ -22,9 +23,10 @@ const router = createRouter({
       meta: { requiresAuth: true },
       children: [
         { path: '', name: 'home', component: Reservas },
-        {path: '/notificaciones',name:'notificaciones',component:Notificaciones},
+        { path: '/notificaciones', name: 'notificaciones', component: Notificaciones },
         { path: '/salas', name: 'detalleSalas', component: ObservacionSalas },
         { path: '/admin', name: 'administrarSalas', component: Administrar },
+        { path: '/adminsala', name: 'crearSalas', component: Salas },
       ],
     },
   ],
@@ -32,13 +34,13 @@ const router = createRouter({
 
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
-  
+
   // Esperar a que se inicialice la autenticación si es la primera carga
   if (authStore.loading) {
     await authStore.initAuth()
   }
 
-  const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
+  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
 
   if (requiresAuth && !authStore.isAuthenticated) {
     next('/login')
