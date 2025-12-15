@@ -4,6 +4,17 @@
     <p><strong>Ubicación:</strong> {{ sala?.ubicacion }}</p>
     <p><strong>Capacidad:</strong> {{ sala?.capacidad }} personas</p>
 
+    <div v-if="loadingEquipamiento">Cargando equipamiento...</div>
+    <div v-else-if="equipamientos.length > 0" class="equipamiento-list">
+      <strong>Equipamiento:</strong>
+      <ul>
+        <li v-for="item in equipamientos" :key="item.id">
+          {{ item.nombre }} ({{ item.cantidad }}) - {{ item.estado }}
+        </li>
+      </ul>
+    </div>
+    <p v-else>No hay equipamiento registrado.</p>
+
     <!-- Selector de Fecha -->
     <div class="fecha-selector-container">
       <label for="fecha">Selecciona una fecha:</label>
@@ -75,11 +86,24 @@ import type { Sala } from '@/interfaces/salas'
 import { useMutation, useQuery } from '@vue/apollo-composable'
 import { CREATE_RESERVATION } from '@/graphql/reservas/mutationReservas'
 import { LIST_RESERVATIONS } from '@/graphql/reservas/queryReservas'
+import { GET_EQUIPAMIENTO_POR_SALA } from '@/graphql/salas/querySalas'
 import { useAuthStore } from '@/stores/auth'
 import Swal from 'sweetalert2'
 
 const props = defineProps<{ sala: Sala | null }>()
 const authStore = useAuthStore()
+
+const { result: resultEquipamiento, loading: loadingEquipamiento } = useQuery(
+  GET_EQUIPAMIENTO_POR_SALA,
+  () => ({
+    salaId: Number(props.sala?.id)
+  }),
+  {
+    enabled: computed(() => !!props.sala?.id)
+  }
+)
+
+const equipamientos = computed(() => resultEquipamiento.value?.equipamientoPorSala || [])
 
 // Tipos
 type Bloque = 'A' | 'B' | 'C' | 'D' | 'E' | 'F'
@@ -366,5 +390,23 @@ watch(fechaSeleccionada, () => {
   color: #666;
   margin: 20px 0;
   font-style: italic;
+}
+
+.equipamiento-list {
+  margin-top: 10px;
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: #f9f9f9;
+  border-radius: 5px;
+}
+
+.equipamiento-list ul {
+  margin: 5px 0 0 20px;
+  padding: 0;
+}
+
+.equipamiento-list li {
+  font-size: 0.9em;
+  color: #555;
 }
 </style>

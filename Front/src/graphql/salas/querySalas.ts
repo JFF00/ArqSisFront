@@ -44,3 +44,16 @@ export const GET_NOTAS_POR_SALA = gql`
     }
   }
 `
+
+export const GET_EQUIPAMIENTO_POR_SALA = gql`
+  query GetEquipamientoPorSala($salaId: Int!) {
+    equipamientoPorSala(salaId: $salaId) {
+      id
+      nombre
+      tipo
+      estado
+      cantidad
+      descripcion
+    }
+  }
+`
