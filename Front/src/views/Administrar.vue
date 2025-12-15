@@ -1,18 +1,25 @@
 <template>
   <div class="solicitudes-container">
-    <!-- DEBUG: Token Display -->
-    <div v-if="authStore.token" class="token-debug-box">
-      <h3>🔑 Token de Acceso (Debug)</h3>
-      <p class="token-info">
-        Usa este token en el header 'Authorization: Bearer ...' para probar la API
-      </p>
-      <div class="token-controls">
-        <textarea readonly :value="authStore.token" rows="2" class="token-area"></textarea>
-        <button @click="copyToken" class="btn-copy">Copiar</button>
-      </div>
-    </div>
+    
 
     <h1 class="title">Solicitudes y Reservas</h1>
+
+    <div class="filtros-container">
+      <div class="filtro-grupo">
+        <label>Filtrar por Fecha:</label>
+        <input type="date" v-model="filtroFecha" class="filtro-input" />
+      </div>
+      
+      <div class="filtro-grupo">
+        <label>Filtrar por Estado:</label>
+        <select v-model="filtroEstado" class="filtro-input">
+          <option value="">Todos</option>
+          <option value="pending">Pendiente</option>
+          <option value="approved">Aprobada</option>
+          <option value="rejected">Rechazada</option>
+        </select>
+      </div>
+    </div>
 
     <div v-if="loading" class="loading">Cargando reservas...</div>
     <div v-else-if="error" class="error">Error: {{ error.message }}</div>
@@ -33,7 +40,7 @@
         </thead>
 
         <tbody>
-          <tr v-for="reserva in reservas" :key="reserva.id">
+          <tr v-for="reserva in reservasFiltradas" :key="reserva.id">
             <!-- <td>{{ reserva.id }}</td> -->
             <!-- <td>{{ reserva.room_id }}</td> -->
             <td>{{ reserva.purpose }}</td>
@@ -76,11 +83,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useQuery, useMutation } from '@vue/apollo-composable'
 import { LIST_RESERVATIONS } from '@/graphql/reservas/queryReservas'
 import { APPROVE_RESERVATION, REJECT_RESERVATION } from '@/graphql/reservas/mutationReservas'
+import Swal from 'sweetalert2'
 
 const authStore = useAuthStore()
 
@@ -93,16 +101,46 @@ const { mutate: rejectReservation } = useMutation(REJECT_RESERVATION)
 
 const reservas = computed(() => result.value?.listReservations?.reservations || [])
 
+const filtroFecha = ref('')
+const filtroEstado = ref('')
+
+const reservasFiltradas = computed(() => {
+  let filtered = reservas.value
+
+  if (filtroFecha.value) {
+    filtered = filtered.filter((r: any) => {
+      if (!r.start_time) return false
+      // Convertir start_time a fecha local YYYY-MM-DD para comparar
+      const fechaReserva = r.start_time.replace('Z', '').split('T')[0]
+      return fechaReserva === filtroFecha.value
+    })
+  }
+
+  if (filtroEstado.value) {
+    filtered = filtered.filter((r: any) => r.status === filtroEstado.value)
+  }
+
+  return filtered
+})
+
 const copyToken = () => {
   if (authStore.token) {
     navigator.clipboard.writeText(authStore.token)
-    alert('Token copiado al portapapeles')
+    Swal.fire({
+      icon: 'success',
+      title: 'Token copiado',
+      text: 'Token copiado al portapapeles',
+      timer: 1500,
+      showConfirmButton: false
+    })
   }
 }
 
 function formatDate(isoString: string) {
   if (!isoString) return '-'
-  return new Date(isoString).toLocaleString()
+  // Eliminar la 'Z' para que se interprete como hora local
+  const localIso = isoString.replace('Z', '')
+  return new Date(localIso).toLocaleString()
 }
 
 function formatUid(uid: string) {
@@ -112,25 +150,59 @@ function formatUid(uid: string) {
 async function aceptar(id: number) {
   try {
     await approveReservation({ id })
-    alert('Reserva aprobada correctamente')
+    Swal.fire({
+      icon: 'success',
+      title: 'Aprobada',
+      text: 'Reserva aprobada correctamente',
+      timer: 1500,
+      showConfirmButton: false
+    })
     refetch()
   } catch (e) {
     console.error(e)
-    alert('Error al aprobar reserva')
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'Error al aprobar reserva'
+    })
   }
 }
 
 async function rechazar(id: number) {
-  const reason = prompt('Ingrese el motivo del rechazo:')
+  const { value: reason } = await Swal.fire({
+    title: 'Rechazar reserva',
+    input: 'text',
+    inputLabel: 'Ingrese el motivo del rechazo',
+    inputPlaceholder: 'Motivo...',
+    showCancelButton: true,
+    confirmButtonText: 'Rechazar',
+    cancelButtonText: 'Cancelar',
+    inputValidator: (value) => {
+      if (!value) {
+        return '¡Debes ingresar un motivo!'
+      }
+    }
+  })
+
   if (!reason) return
 
   try {
     await rejectReservation({ id, reason })
-    alert('Reserva rechazada correctamente')
+    Swal.fire({
+      icon: 'success',
+      title: 'Rechazada',
+      text: 'Reserva rechazada correctamente',
+      timer: 1500,
+      showConfirmButton: false
+    })
     refetch()
   } catch (e) {
     console.error(e)
-    alert('Error al rechazar reserva')
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      text: 'Error al rechazar reserva'
+    })
   }
 }
 </script>
@@ -158,7 +230,7 @@ async function rechazar(id: number) {
   background-color: #fff3cd;
   color: #856404;
 }
-.status-badge.confirmed {
+.status-badge.approved {
   background-color: #d4edda;
   color: #155724;
 }
@@ -276,5 +348,34 @@ th {
 
 .btn:hover {
   opacity: 0.8;
+}
+
+.filtros-container {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 10px;
+  background-color: #f9f9f9;
+  padding: 15px;
+  border-radius: 8px;
+  border: 1px solid #eee;
+}
+
+.filtro-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.filtro-grupo label {
+  font-weight: bold;
+  font-size: 0.9em;
+  color: #555;
+}
+
+.filtro-input {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-family: 'Outfit', sans-serif;
 }
 </style>

@@ -32,6 +32,10 @@
           Estado: {{ traducirEstado(item.status) }}
         </span>
 
+        <p v-if="item.status === 'rejected' && item.rejection_reason" class="motivo-rechazo">
+          <strong>Motivo:</strong> {{ item.rejection_reason }}
+        </p>
+
         <button 
           v-if="item.status === 'pending'" 
           class="btn-cancelar"
@@ -50,6 +54,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useQuery, useMutation } from '@vue/apollo-composable'
 import { GET_MY_RESERVATIONS } from '@/graphql/reservas/queryReservas'
 import { CANCEL_RESERVATION } from '@/graphql/reservas/mutationReservas'
+import Swal from 'sweetalert2'
 
 const authStore = useAuthStore()
 
@@ -72,15 +77,34 @@ const { result, loading, error, refetch } = useQuery(
 const { mutate: cancelReservationMutation } = useMutation(CANCEL_RESERVATION)
 
 async function cancelar(id: number) {
-  if (!confirm('¿Estás seguro de que deseas cancelar esta reserva?')) return
+  const result = await Swal.fire({
+    title: '¿Estás seguro?',
+    text: "¿Deseas cancelar esta reserva?",
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#3085d6',
+    cancelButtonColor: '#d33',
+    confirmButtonText: 'Sí, cancelar',
+    cancelButtonText: 'No'
+  })
+
+  if (!result.isConfirmed) return
 
   try {
     await cancelReservationMutation({ id })
-    alert('Reserva cancelada correctamente')
+    Swal.fire(
+      'Cancelada!',
+      'La reserva ha sido cancelada.',
+      'success'
+    )
     refetch()
   } catch (e) {
     console.error(e)
-    alert('Error al cancelar reserva')
+    Swal.fire(
+      'Error!',
+      'Hubo un problema al cancelar la reserva.',
+      'error'
+    )
   }
 }
 
@@ -113,7 +137,11 @@ const formatearFecha = (fecha: string) => {
 
 const formatearFechaHora = (fecha: string) => {
   if (!fecha) return ''
-  const f = new Date(fecha)
+  // Eliminar la 'Z' para que el navegador lo interprete como hora local (Wall Clock Time)
+  // y no realice conversión de zona horaria (UTC -> Local)
+  const fechaLocal = fecha.replace('Z', '')
+  const f = new Date(fechaLocal)
+  
   return f.toLocaleString('es-CL', {
     day: '2-digit',
     month: '2-digit',
@@ -214,6 +242,15 @@ const traducirEstado = (status: string) => {
 .estado {
   font-weight: bold;
   margin-top: 0.5rem;
+}
+
+.motivo-rechazo {
+  margin-top: 0.5rem;
+  color: #d32f2f;
+  font-style: italic;
+  background-color: #ffebee;
+  padding: 5px;
+  border-radius: 4px;
 }
 
 .aprobada {

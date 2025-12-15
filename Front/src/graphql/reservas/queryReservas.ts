@@ -33,6 +33,7 @@ export const GET_MY_RESERVATIONS = gql`
         start_time
         end_time
         created_at
+        rejection_reason
       }
     }
   }

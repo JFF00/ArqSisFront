@@ -1,90 +1,88 @@
 <template>
   <div class="detalle-sala">
     <h2>{{ sala?.nombre }}</h2>
-    <p><strong>Capacidad:</strong> {{ sala?.capacidad }}</p>
+    <p><strong>Ubicación:</strong> {{ sala?.ubicacion }}</p>
+    <p><strong>Capacidad:</strong> {{ sala?.capacidad }} personas</p>
 
-    <div class="tabla-container">
-      <table class="tabla-style">
-        <thead>
-          <tr>
-            <th>Bloque</th>
-            <th v-for="dia in dias" :key="dia">{{ dia }}</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          <tr v-for="bloque in bloques" :key="bloque">
-            <th>{{ bloque }}</th>
-            <td v-for="dia in dias" :key="dia">
-              <div
-                :class="['cuadro-estado', disponibilidadColor[bloque]?.[dia] || 'disponible']"
-                @click="seleccionarBloqueSiDisponible(bloque, dia)"
-                :style="{
-                  cursor:
-                    (disponibilidadColor[bloque]?.[dia] || 'disponible') === 'disponible'
-                      ? 'pointer'
-                      : 'not-allowed',
-                }"
-              ></div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <!-- Selector de Fecha -->
+    <div class="fecha-selector-container">
+      <label for="fecha">Selecciona una fecha:</label>
+      <input 
+        type="date" 
+        id="fecha" 
+        v-model="fechaSeleccionada" 
+        :min="minDate"
+        class="input-fecha"
+      />
     </div>
 
-    <div v-if="seleccion.bloque" class="seleccion-info">
-      Seleccionaste: <strong>{{ seleccion.sala }}</strong> — Bloque
-      <strong>{{ seleccion.bloque }}</strong> — Día
-      <strong>{{ seleccion.dia }}</strong>
+    <!-- Selección de Bloques -->
+    <div v-if="fechaSeleccionada" class="bloques-container">
+      <h3>Selecciona un bloque horario:</h3>
+      <div class="grid-bloques">
+        <div 
+          v-for="(horario, bloque) in bloquesHorarios" 
+          :key="bloque"
+          class="bloque-item"
+          :class="getEstadoBloque(bloque, horario)"
+          @click="seleccionarBloque(bloque, horario)"
+        >
+          <div class="bloque-nombre">Bloque {{ bloque }}</div>
+          <div class="bloque-hora">{{ horario.start }} - {{ horario.end }}</div>
+          <div class="bloque-estado">{{ getTextoEstado(bloque, horario) }}</div>
+        </div>
+      </div>
+    </div>
+    <div v-else class="mensaje-ayuda">
+      <p> Por favor selecciona una fecha para ver los bloques disponibles.</p>
     </div>
 
-    <div v-if="fechasDisponibles.length" class="fecha-selector">
-      <h3 class="select">Selecciona una fecha y el motivo</h3>
+    <!-- Formulario de Reserva -->
+    <div v-if="bloqueSeleccionado" class="formulario-reserva">
+      <div class="seleccion-info">
+        <p>Reserva para: <strong>{{ sala?.nombre }}</strong></p>
+        <p>Fecha: <strong>{{ fechaFormateada }}</strong></p>
+        <p>Bloque: <strong>{{ bloqueSeleccionado }}</strong> ({{ bloquesHorarios[bloqueSeleccionado].start }} - {{ bloquesHorarios[bloqueSeleccionado].end }})</p>
+      </div>
 
-      <select v-model="fechaSeleccionada">
-        <option disabled value="">Selecciona fecha</option>
-        <option v-for="f in fechasDisponibles" :key="f">{{ f }}</option>
-      </select>
+      <div class="campo-motivo">
+        <label>Motivo de la reserva:</label>
+        <select v-model="motivoSeleccionado" class="motivo-select">
+          <option disabled value="">Selecciona un motivo</option>
+          <option value="Clase">Clase</option>
+          <option value="Ayudantía">Ayudantía</option>
+          <option value="Reunión">Reunión</option>
+          <option value="Estudio">Estudio</option>
+          <option value="Evento">Evento</option>
+          <option value="Otro">Otro</option>
+        </select>
+      </div>
 
-      <select v-model="motivoSeleccionado" class="motivo-select">
-        <option disabled value="">Motivo</option>
-        <option value="ayudantías">Ayudantías</option>
-        <option value="reunión">Reunión</option>
-        <option value="estudios">Estudios</option>
-        <option value="otro">Otro</option>
-      </select>
+      <button 
+        class="btn-enviar" 
+        :disabled="!motivoSeleccionado || loadingMutation"
+        @click="enviarSolicitud"
+      >
+        {{ loadingMutation ? 'Enviando...' : 'Confirmar Reserva' }}
+      </button>
     </div>
-
-    <button v-if="fechaSeleccionada" class="btn-enviar" @click="enviarSolicitud">
-      Enviar solicitud
-    </button>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { Sala } from '@/interfaces/salas'
 import { useMutation, useQuery } from '@vue/apollo-composable'
 import { CREATE_RESERVATION } from '@/graphql/reservas/mutationReservas'
 import { LIST_RESERVATIONS } from '@/graphql/reservas/queryReservas'
+import { useAuthStore } from '@/stores/auth'
+import Swal from 'sweetalert2'
 
-type Dia = 'lunes' | 'martes' | 'miercoles' | 'jueves' | 'viernes'
+const props = defineProps<{ sala: Sala | null }>()
+const authStore = useAuthStore()
+
+// Tipos
 type Bloque = 'A' | 'B' | 'C' | 'D' | 'E' | 'F'
-
-type Reserva = {
-  id: number
-  user_uid: string
-  user: { nombreCompleto: string; email: string }
-  status: 'approved' | 'pending'
-  purpose: string
-  room_id: number
-  start_time: string
-  end_time: string
-  created_at: string
-}
-
-const { sala } = defineProps<{ sala: Sala | null }>()
-
 const bloquesHorarios: Record<Bloque, { start: string; end: string }> = {
   A: { start: '08:10', end: '09:40' },
   B: { start: '09:55', end: '11:25' },
@@ -94,313 +92,279 @@ const bloquesHorarios: Record<Bloque, { start: string; end: string }> = {
   F: { start: '18:00', end: '19:30' },
 }
 
-const dias: Dia[] = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes']
-const bloques: Bloque[] = ['A', 'B', 'C', 'D', 'E', 'F']
-
-const fechasDisponibles = ref<string[]>([])
+// Estado
 const fechaSeleccionada = ref('')
+const bloqueSeleccionado = ref<Bloque | null>(null)
 const motivoSeleccionado = ref('')
+const minDate = new Date().toISOString().split('T')[0]
 
-const seleccion = reactive({ sala: '', bloque: '', dia: '' })
-
-// --- QUERY ---
-const { result: reservasResult, refetch } = useQuery(LIST_RESERVATIONS, { input: {} })
-
-// --- MUTATION ---
-const { mutate: createReservation, onDone, onError } = useMutation(CREATE_RESERVATION)
-
-function isThisWeek(date: Date): boolean {
-  const hoy = new Date()
-  const primerDiaSemana = new Date(hoy)
-  primerDiaSemana.setDate(hoy.getDate() - hoy.getDay() + 1) // lunes
-  primerDiaSemana.setHours(0, 0, 0, 0)
-
-  const ultimoDiaSemana = new Date(primerDiaSemana)
-  ultimoDiaSemana.setDate(primerDiaSemana.getDate() + 6)
-  ultimoDiaSemana.setHours(23, 59, 59, 999)
-
-  return date >= primerDiaSemana && date <= ultimoDiaSemana
-}
-
-onDone((result) => {
-  alert(
-    `Reserva creada con éxito! ID: ${result.data.createReservation.id} - Estado: ${result.data.createReservation.status}`,
-  )
-  fechaSeleccionada.value = ''
-  motivoSeleccionado.value = ''
-  seleccion.sala = ''
-  seleccion.bloque = ''
-  seleccion.dia = ''
-  refetch()
+// Query para obtener reservas de la sala
+const { result, refetch } = useQuery(LIST_RESERVATIONS, () => ({
+  input: {
+    room_id: props.sala?.id ? Number(props.sala.id) : null
+  }
+}), {
+  pollInterval: 5000 // Actualizar cada 5s
 })
 
-onError((error) => {
-  console.error(error)
-  alert('Error al crear la reserva: ' + error.message)
+// Mutation
+const { mutate: createReservation, loading: loadingMutation } = useMutation(CREATE_RESERVATION)
+
+// Computed
+const reservasExistentes = computed(() => result.value?.listReservations?.reservations || [])
+
+const fechaFormateada = computed(() => {
+  if (!fechaSeleccionada.value) return ''
+  // Ajustar zona horaria para visualización correcta
+  const [year, month, day] = fechaSeleccionada.value.split('-').map(Number)
+  const date = new Date(year, month - 1, day)
+  return date.toLocaleDateString('es-CL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
 })
 
-function seleccionarBloqueSiDisponible(bloque: Bloque, dia: Dia) {
-  const estado = disponibilidadColor.value?.[bloque]?.[dia] || 'disponible'
-  if (estado === 'disponible') seleccionarBloque(bloque, dia)
-}
+// Métodos de Estado
+function getEstadoBloque(bloque: Bloque, horario: { start: string; end: string }) {
+  if (!fechaSeleccionada.value) return ''
+  
+  // Parsear fecha como LOCAL (no UTC)
+  const [year, month, day] = fechaSeleccionada.value.split('-').map(Number)
+  const fechaSeleccionadaDate = new Date(year, month - 1, day) // Mes es 0-indexado
 
-function seleccionarBloque(bloque: Bloque, dia: Dia) {
-  seleccion.sala = sala?.nombre || ''
-  seleccion.bloque = bloque
-  seleccion.dia = dia
-  fechasDisponibles.value = obtenerProximasFechas(dia)
-}
+  // 1. Verificar si es pasado
+  const ahora = new Date()
+  const hoyDate = new Date()
+  hoyDate.setHours(0,0,0,0) // Resetear hora de hoy a medianoche
 
-function formatearFechaLocal(date: Date): string {
-  const y = date.getFullYear()
-  const m = String(date.getMonth() + 1).padStart(2, '0')
-  const d = String(date.getDate()).padStart(2, '0')
-  return `${y}-${m}-${d}`
-}
+  // Si la fecha es anterior a hoy
+  if (fechaSeleccionadaDate < hoyDate) return 'pasado'
 
-function obtenerProximasFechas(dia: Dia, cantidad = 4): string[] {
-  const diasIndice: Record<Dia, number> = {
-    lunes: 1,
-    martes: 2,
-    miercoles: 3,
-    jueves: 4,
-    viernes: 5,
+  // Si es hoy, verificar la hora del bloque
+  if (fechaSeleccionadaDate.getTime() === hoyDate.getTime()) {
+     const [horaFin, minFin] = horario.end.split(':').map(Number)
+     const ahoraMins = ahora.getHours() * 60 + ahora.getMinutes()
+     const finMins = horaFin * 60 + minFin
+     
+     // Si ya pasó la hora de término del bloque
+     if (ahoraMins > finMins) return 'pasado'
   }
-  const hoy = new Date()
-  const hoyDia = hoy.getDay()
-  const targetIndex = diasIndice[dia]
-  if (targetIndex === undefined) return []
 
-  let diff = targetIndex - hoyDia
-  if (diff < 0) diff += 7
+  // 2. Verificar si está ocupado
+  const ocupado = reservasExistentes.value.some((res: any) => {
+    if (!res || !res.start_time || !res.end_time) return false
+    if (res.status === 'cancelled' || res.status === 'rejected') return false
+    
+    try {
+      // Parsear fechas asegurando que se traten como locales (ignorando la Z si viene)
+      // Esto es necesario porque guardamos la hora local "falsificada" como UTC en la BD
+      const startStr = res.start_time.replace('Z', '')
+      const endStr = res.end_time.replace('Z', '')
+      
+      const resStart = new Date(startStr)
+      const resEnd = new Date(endStr)
+      
+      // Construir fechas del bloque en base a la fecha seleccionada LOCAL
+      const [horaIni, minIni] = horario.start.split(':').map(Number)
+      const bloqueStart = new Date(year, month - 1, day)
+      bloqueStart.setHours(horaIni, minIni, 0)
+      
+      const [horaFin, minFin] = horario.end.split(':').map(Number)
+      const bloqueEnd = new Date(year, month - 1, day)
+      bloqueEnd.setHours(horaFin, minFin, 0)
 
-  const fechas: string[] = []
-  for (let i = 0; i < cantidad; i++) {
-    const fecha = new Date(hoy)
-    fecha.setDate(hoy.getDate() + diff + i * 7)
-    fechas.push(formatearFechaLocal(fecha))
+      // Verificar solapamiento: (StartA < EndB) and (EndA > StartB)
+      const isOccupied = (bloqueStart < resEnd && bloqueEnd > resStart)
+      
+      return isOccupied
+    } catch (e) {
+      console.error("Error validando reserva:", e)
+      return false
+    }
+  })
+
+  if (ocupado) return 'ocupado'
+  if (bloqueSeleccionado.value === bloque) return 'seleccionado'
+  
+  return 'disponible'
+}
+
+function getTextoEstado(bloque: Bloque, horario: { start: string; end: string }) {
+  const estado = getEstadoBloque(bloque, horario)
+  const textos: Record<string, string> = {
+    'disponible': 'Disponible',
+    'ocupado': 'Ocupado',
+    'pasado': 'No disponible',
+    'seleccionado': 'Seleccionado'
   }
-  return fechas
+  return textos[estado] || ''
+}
+
+function seleccionarBloque(bloque: Bloque, horario: { start: string; end: string }) {
+  const estado = getEstadoBloque(bloque, horario)
+  if (estado === 'disponible') {
+    bloqueSeleccionado.value = bloque
+  } else if (estado === 'seleccionado') {
+    // Opcional: Deseleccionar si ya está seleccionado
+    bloqueSeleccionado.value = null
+  }
 }
 
 function enviarSolicitud() {
-  if (!fechaSeleccionada.value || !seleccion.bloque || !sala) return
+  if (!bloqueSeleccionado.value || !fechaSeleccionada.value || !props.sala) return
 
-  const bloqueInfo = bloquesHorarios[seleccion.bloque as Bloque]
-  if (!bloqueInfo) return
+  const horario = bloquesHorarios[bloqueSeleccionado.value]
+  
+  // Construir fechas ISO usando la fecha LOCAL
+  const [year, month, day] = fechaSeleccionada.value.split('-').map(Number)
+  
+  const start = new Date(year, month - 1, day)
+  const [hIni, mIni] = horario.start.split(':').map(Number)
+  start.setHours(hIni, mIni, 0)
 
-  const startDateTime = new Date(`${fechaSeleccionada.value}T${bloqueInfo.start}:00`)
-  const endDateTime = new Date(`${fechaSeleccionada.value}T${bloqueInfo.end}:00`)
+  const end = new Date(year, month - 1, day)
+  const [hFin, mFin] = horario.end.split(':').map(Number)
+  end.setHours(hFin, mFin, 0)
 
-  createReservation({
-    input: {
-      room_id: Number(sala.id),
-      start_time: startDateTime.toISOString(),
-      end_time: endDateTime.toISOString(),
-      purpose: motivoSeleccionado.value || 'Reserva desde Front',
-    },
-  })
+  // Ajuste para enviar la hora local tal cual (sin conversión a UTC)
+  // Restamos el offset (en minutos) para que al hacer toISOString() quede la hora local
+  const startISO = new Date(start.getTime() - (start.getTimezoneOffset() * 60000)).toISOString()
+  const endISO = new Date(end.getTime() - (end.getTimezoneOffset() * 60000)).toISOString()
+
+  try {
+    createReservation({
+      input: {
+        room_id: Number(props.sala.id),
+        start_time: startISO,
+        end_time: endISO,
+        purpose: motivoSeleccionado.value
+      }
+    })
+    Swal.fire('Éxito', 'Solicitud de reserva enviada con éxito', 'success')
+    bloqueSeleccionado.value = null
+    motivoSeleccionado.value = ''
+    refetch()
+  } catch (error) {
+    console.error(error)
+    Swal.fire('Error', 'Error al crear la reserva', 'error')
+  }
 }
 
-// --- Computed ---
-const disponibilidadColor = computed(() => {
-  const reservas: Reserva[] = reservasResult.value?.listReservations?.reservations || []
-  const disponibilidad: Record<Bloque, Record<Dia, string>> = {} as Record<
-    Bloque,
-    Record<Dia, string>
-  >
+// Resetear selección si cambia la sala
+watch(() => props.sala, () => {
+  bloqueSeleccionado.value = null
+  fechaSeleccionada.value = ''
+})
 
-  reservas.forEach((r) => {
-    if (!sala || r.room_id !== Number(sala.id)) return
-
-    const fecha = new Date(r.start_time)
-    if (!isThisWeek(fecha)) return // <- Filtramos solo esta semana
-
-    const diaMap: Record<number, Dia> = {
-      1: 'lunes',
-      2: 'martes',
-      3: 'miercoles',
-      4: 'jueves',
-      5: 'viernes',
-    }
-    const dia = diaMap[fecha.getDay()]
-    if (!dia) return
-
-    const hora = fecha.getHours()
-    const min = fecha.getMinutes()
-
-    let bloque: Bloque | undefined
-    for (const [b, h] of Object.entries(bloquesHorarios)) {
-      const [startH, startM] = h.start.split(':').map(Number)
-      const [endH, endM] = h.end.split(':').map(Number)
-      if (startH === undefined || startM === undefined || endH === undefined || endM === undefined)
-        continue
-      const start = startH * 60 + startM
-      const end = endH * 60 + endM
-      const actual = hora * 60 + min
-      if (actual >= start && actual < end) {
-        bloque = b as Bloque
-        break
-      }
-    }
-
-    if (!bloque) return
-
-    if (!disponibilidad[bloque]) disponibilidad[bloque] = {} as Record<Dia, string>
-
-    if (r.status === 'approved') disponibilidad[bloque][dia] = 'ocupado'
-    else if (r.status === 'pending' && disponibilidad[bloque][dia] !== 'ocupado')
-      disponibilidad[bloque][dia] = 'reservado'
-    else if (!disponibilidad[bloque][dia]) disponibilidad[bloque][dia] = 'disponible'
-  })
-
-  return disponibilidad
+// Resetear bloque si cambia la fecha
+watch(fechaSeleccionada, () => {
+  bloqueSeleccionado.value = null
 })
 </script>
 
 <style scoped>
-/* CONTENEDOR PRINCIPAL */
 .detalle-sala {
-  font-family: 'Outfit', sans-serif;
-  padding: 2rem;
-  max-width: 900px;
-  margin: 0 auto;
-}
-
-/* TÍTULO DE LA SALA */
-.detalle-sala h2 {
-  font-family: 'Cal Sans', sans-serif;
-  font-size: 2rem;
-  margin-bottom: 10px;
-  text-align: center;
-}
-
-/* TEXTO PRINCIPAL */
-.detalle-sala p {
-  font-size: 1rem;
-  margin-bottom: 1rem;
-  text-align: center;
-}
-
-/* CONTENEDOR DE TABLA */
-.tabla-container {
-  margin-top: 1.5rem;
-  overflow-x: auto;
-}
-
-/* TABLA */
-.tabla-style {
-  width: 100%;
-  border-collapse: collapse;
+  padding: 20px;
   background: white;
-  border-radius: 10px;
-  overflow: hidden;
-  font-size: 0.95rem;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-}
-
-/* HEADERS */
-th {
-  background: #f4f4f4;
-  font-family: 'Cal Sans', sans-serif;
-  font-size: 0.9rem;
-  padding: 10px;
-}
-
-/* CELDAS */
-td {
-  padding: 6px;
-  border: 1px solid #e0e0e0;
-}
-
-/* BLOQUES CUADRADOS */
-.cuadro-estado {
-  width: 26px;
-  height: 26px;
-  border-radius: 6px;
-  margin: 0 auto;
-  transition: transform 0.15s ease;
-}
-
-.cuadro-estado:hover {
-  transform: scale(1.1);
-}
-
-/* COLORES DE ESTADO */
-.disponible {
-  background-color: #49b86c;
-}
-.ocupado {
-  background-color: #ef5350;
-}
-.reservado {
-  background-color: #ffb74d;
-}
-
-/* INFO DE SELECCIÓN */
-.seleccion-info {
-  margin-top: 20px;
-  padding: 12px 14px;
-  background: #e8ffe8;
-  border-left: 5px solid #4caf50;
-  font-family: 'Outfit', sans-serif;
-  border-radius: 6px;
-  font-size: 15px;
-}
-
-/* SELECTORES DE FECHA Y MOTIVO */
-.fecha-selector {
-  margin-top: 20px;
-  text-align: center;
-}
-
-.select {
-  font-family: 'Cal Sans', sans-serif;
-  font-weight: 600;
-  margin-bottom: 10px;
-}
-
-/* SELECT MODERNO */
-select {
-  padding: 10px;
-  width: 70%;
-  max-width: 300px;
-  margin: 6px 0;
-  border: 1px solid #bdbdbd;
-  border-radius: 6px;
-  font-family: 'Outfit', sans-serif;
-  font-size: 0.95rem;
-  background: white;
-  transition: all 0.2s ease;
-}
-
-select:focus {
-  border-color: #4caf50;
-  box-shadow: 0 0 6px rgba(76, 175, 80, 0.4);
-  outline: none;
-}
-
-/* BOTÓN */
-.btn-enviar {
-  margin-top: 22px;
-  padding: 12px 24px;
-  font-family: 'Outfit', sans-serif;
-  background-color: #4caf50;
-  color: white;
-  font-size: 1rem;
-  border: none;
   border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.fecha-selector-container {
+  margin: 20px 0;
+}
+
+.input-fecha {
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-left: 10px;
+}
+
+.grid-bloques {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.bloque-item {
+  border: 1px solid #eee;
+  padding: 15px;
+  border-radius: 6px;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.bloque-nombre { font-weight: bold; font-size: 1.1em; }
+.bloque-hora { font-size: 0.9em; color: #666; margin: 5px 0; }
+.bloque-estado { font-size: 0.85em; font-weight: bold; }
+
+/* Estados */
+.disponible {
+  background-color: #e8f5e9;
+  border-color: #a5d6a7;
+  color: #2e7d32;
   cursor: pointer;
-  transition:
-    background 0.2s ease,
-    transform 0.1s ease;
+}
+.disponible:hover { background-color: #c8e6c9; }
+
+.ocupado {
+  background-color: #ffebee;
+  border-color: #ef9a9a;
+  color: #c62828;
+  cursor: not-allowed;
+  opacity: 0.8;
 }
 
-.btn-enviar:hover {
-  background-color: #43a047;
+.pasado {
+  background-color: #f5f5f5;
+  border-color: #e0e0e0;
+  color: #9e9e9e;
+  cursor: not-allowed;
 }
 
-.btn-enviar:active {
-  transform: scale(0.97);
+.seleccionado {
+  background-color: #e3f2fd;
+  border-color: #2196f3;
+  color: #1565c0;
+  box-shadow: 0 0 0 2px #2196f3;
+  cursor: pointer;
+}
+
+.formulario-reserva {
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+}
+
+.campo-motivo {
+  margin: 15px 0;
+}
+
+.motivo-select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.btn-enviar {
+  width: 100%;
+  padding: 10px;
+  background-color: #002060;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.btn-enviar:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+.mensaje-ayuda {
+  text-align: center;
+  color: #666;
+  margin: 20px 0;
+  font-style: italic;
 }
 </style>

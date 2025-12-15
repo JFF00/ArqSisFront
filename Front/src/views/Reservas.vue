@@ -5,7 +5,6 @@
       <table class="table">
         <thead class="table-head">
           <tr>
-            <th>ID</th>
             <th>Sala</th>
             <th>Capacidad</th>
             <th>Ver Disponibilidad</th>
@@ -13,7 +12,6 @@
         </thead>
         <tbody class="table-body">
           <tr v-for="sala in salas" :key="sala.id">
-            <td>{{ sala.id }}</td>
             <td>{{ sala.nombre }}</td>
             <td>{{ sala.capacidad }}</td>
             <td>

@@ -177,6 +177,7 @@ import type { Sala } from '@/interfaces/salas'
 import { useAuthStore } from '@/stores/auth'
 import { UPDATE_ITEM_PERDIDO } from '@/graphql/salas/mutationSalas.ts'
 import { UPDATE_NOTA } from '@/graphql/salas/mutationSalas'
+import Swal from 'sweetalert2'
 
 const salas = ref<Sala[]>([])
 const itemsPerdidos = ref<ItemPerdido[]>([])
@@ -309,10 +310,10 @@ const crearNota = async () => {
     resetNota()
     mostrarFormNota.value = false
 
-    alert('Observación creada correctamente')
+    Swal.fire('Éxito', 'Observación creada correctamente', 'success')
   } catch (error) {
     console.error(error)
-    alert('Error al crear la observación')
+    Swal.fire('Error', 'Error al crear la observación', 'error')
   }
 }
 const crearItemPerdido = async () => {
@@ -333,10 +334,10 @@ const crearItemPerdido = async () => {
     resetItem()
     mostrarFormItem.value = false
 
-    alert('Objeto perdido registrado correctamente')
+    Swal.fire('Éxito', 'Objeto perdido registrado correctamente', 'success')
   } catch (error) {
     console.error(error)
-    alert('❌ Error al registrar el objeto')
+    Swal.fire('Error', 'Error al registrar el objeto', 'error')
   }
 }
 const marcarComoRecuperado = async (itemId: number) => {
@@ -353,10 +354,10 @@ const marcarComoRecuperado = async (itemId: number) => {
 
     await fetchItems(Number(opcionSeleccionada.value))
 
-    alert('✅ Objeto marcado como recuperado')
+    Swal.fire('Éxito', 'Objeto marcado como recuperado', 'success')
   } catch (error) {
     console.error(error)
-    alert('❌ Error al actualizar el estado')
+    Swal.fire('Error', 'Error al actualizar el estado', 'error')
   }
 }
 const marcarNotaComoResuelta = async (notaId: number) => {
@@ -373,10 +374,10 @@ const marcarNotaComoResuelta = async (notaId: number) => {
 
     await fetchNotas(Number(opcionSeleccionada.value))
 
-    alert('✅ Observación marcada como resuelta')
+    Swal.fire('Éxito', 'Observación marcada como resuelta', 'success')
   } catch (error) {
     console.error(error)
-    alert('❌ Error al resolver la observación')
+    Swal.fire('Error', 'Error al resolver la observación', 'error')
   }
 }
 

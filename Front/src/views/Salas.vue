@@ -50,10 +50,10 @@
               required
             />
 
-            <button type="button" @click="removeEquipamiento(index)">❌</button>
+            <button type="button" @click="removeEquipamiento(index)">X</button>
           </div>
 
-          <button type="button" @click="addEquipamiento">➕ Agregar equipamiento</button>
+          <button type="button" @click="addEquipamiento"> Agregar equipamiento</button>
         </div>
 
         <button type="submit" class="btn aceptar" :disabled="loading">
@@ -69,6 +69,7 @@ import { reactive, ref } from 'vue'
 import { useMutation } from '@vue/apollo-composable'
 import { CREATE_SALA } from '@/graphql/salas/mutationSalas.ts'
 import { CREATE_EQUIPAMIENTO } from '@/graphql/equipamiento/mutationEquipamiento.ts'
+import Swal from 'sweetalert2'
 
 const loading = ref(false)
 
@@ -123,7 +124,7 @@ async function crearSala() {
       })
     }
 
-    alert('Sala y equipamiento creados correctamente ✅')
+    Swal.fire('Éxito', 'Sala y equipamiento creados correctamente ✅', 'success')
 
     // Reset
     form.nombre = ''
@@ -133,7 +134,7 @@ async function crearSala() {
     form.equipamientos = []
   } catch (err) {
     console.error(err)
-    alert('Error al crear sala y equipamiento')
+    Swal.fire('Error', 'Error al crear sala y equipamiento', 'error')
   } finally {
     loading.value = false
   }
