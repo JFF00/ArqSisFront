@@ -21,6 +21,9 @@ export const GET_ITEMS_PERDIDOS_POR_SALA = gql`
       nombre
       descripcion
       categoria
+      fecha_hallazgo
+      ubicacion
+      reportado_por
       estado
     }
   }

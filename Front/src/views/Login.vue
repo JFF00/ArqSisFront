@@ -5,20 +5,19 @@
         <img src="@/assets/pace.png" alt="Logo PACE" class="logo" />
         <h2>Salas PACE UCN</h2>
       </div>
-      
+
       <h3>Bienvenido</h3>
       <p class="subtitle">Inicia sesión para continuar</p>
-      
+
       <div v-if="error" class="error-message">
         {{ error }}
       </div>
 
-      <button 
-        @click="handleGoogleLogin" 
-        :disabled="loading" 
-        class="google-btn"
-      >
-        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google logo" />
+      <button @click="handleGoogleLogin" :disabled="loading" class="google-btn">
+        <img
+          src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg"
+          alt="Google logo"
+        />
         <span>{{ loading ? 'Conectando...' : 'Iniciar sesión con Google' }}</span>
       </button>
     </div>
@@ -26,29 +25,29 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { useAuthStore } from '@/stores/auth';
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
-const error = ref('');
-const loading = ref(false);
+const error = ref('')
+const loading = ref(false)
 
-const router = useRouter();
-const authStore = useAuthStore();
+const router = useRouter()
+const authStore = useAuthStore()
 
 const handleGoogleLogin = async () => {
-  loading.value = true;
-  error.value = '';
-  
+  loading.value = true
+  error.value = ''
+
   try {
-    await authStore.loginWithGoogle();
-    router.push('/'); // Redirigir al home después del login
+    await authStore.loginWithGoogle()
+    router.push('/') // Redirigir al home después del login
   } catch (e: any) {
-    error.value = 'Error al iniciar sesión: ' + (e.message || 'Inténtalo de nuevo');
+    error.value = 'Error al iniciar sesión: ' + (e.message || 'Inténtalo de nuevo')
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 </script>
 
 <style scoped>
@@ -115,7 +114,9 @@ h3 {
   cursor: pointer;
   font-size: 1rem;
   font-weight: 500;
-  transition: background-color 0.2s, box-shadow 0.2s;
+  transition:
+    background-color 0.2s,
+    box-shadow 0.2s;
   gap: 12px;
 }
 

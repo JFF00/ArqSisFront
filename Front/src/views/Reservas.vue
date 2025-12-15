@@ -47,18 +47,60 @@ const salaSeleccionada = ref<Sala | null>(null)
 
 // Disponibilidad simulada por defecto (todo disponible)
 const disponibilidadDefault = {
-  A: { lunes: 'disponible', martes: 'disponible', miercoles: 'disponible', jueves: 'disponible', viernes: 'disponible' },
-  B: { lunes: 'disponible', martes: 'disponible', miercoles: 'disponible', jueves: 'disponible', viernes: 'disponible' },
-  C: { lunes: 'disponible', martes: 'disponible', miercoles: 'disponible', jueves: 'disponible', viernes: 'disponible' },
-  D: { lunes: 'disponible', martes: 'disponible', miercoles: 'disponible', jueves: 'disponible', viernes: 'disponible' },
-  E: { lunes: 'disponible', martes: 'disponible', miercoles: 'disponible', jueves: 'disponible', viernes: 'disponible' },
-  F: { lunes: 'disponible', martes: 'disponible', miercoles: 'disponible', jueves: 'disponible', viernes: 'disponible' },
+  A: {
+    lunes: 'disponible',
+    martes: 'disponible',
+    miercoles: 'disponible',
+    jueves: 'disponible',
+    viernes: 'disponible',
+  },
+  B: {
+    lunes: 'disponible',
+    martes: 'disponible',
+    miercoles: 'disponible',
+    jueves: 'disponible',
+    viernes: 'disponible',
+  },
+  C: {
+    lunes: 'disponible',
+    martes: 'disponible',
+    miercoles: 'disponible',
+    jueves: 'disponible',
+    viernes: 'disponible',
+  },
+  D: {
+    lunes: 'disponible',
+    martes: 'disponible',
+    miercoles: 'disponible',
+    jueves: 'disponible',
+    viernes: 'disponible',
+  },
+  E: {
+    lunes: 'disponible',
+    martes: 'disponible',
+    miercoles: 'disponible',
+    jueves: 'disponible',
+    viernes: 'disponible',
+  },
+  F: {
+    lunes: 'disponible',
+    martes: 'disponible',
+    miercoles: 'disponible',
+    jueves: 'disponible',
+    viernes: 'disponible',
+  },
 }
 
 // Disponibilidad específica (ejemplo)
 const disponibilidad = reactive({
   'X-107': {
-    A: { lunes: 'disponible', martes: 'ocupado', miercoles: 'reservado', jueves: 'disponible', viernes: 'ocupado' },
+    A: {
+      lunes: 'disponible',
+      martes: 'ocupado',
+      miercoles: 'reservado',
+      jueves: 'disponible',
+      viernes: 'ocupado',
+    },
     // ... rellenar estructura completa si se desea
   },
 })
@@ -68,7 +110,7 @@ const fetchSalas = async () => {
   try {
     const { data } = await apolloClient.query({
       query: GET_SALAS,
-      fetchPolicy: 'network-only'
+      fetchPolicy: 'network-only',
     })
     salas.value = data.salas
   } catch (error) {
@@ -88,7 +130,6 @@ onMounted(() => {
 })
 </script>
 
-
 <style>
 /* tu CSS (mantén .fa-eye cursor pointer) */
 .title {
@@ -106,7 +147,7 @@ onMounted(() => {
   justify-content: center;
   gap: 20px;
   width: 100%;
-  height: 80vh;                  /* ← MISMA ALTURA PARA AMBAS COLUMNAS */
+  height: 80vh; /* ← MISMA ALTURA PARA AMBAS COLUMNAS */
   box-sizing: border-box;
 }
 
@@ -114,14 +155,14 @@ onMounted(() => {
 .table-container {
   width: 40%;
   overflow-y: auto;
-  height: 100%;                  /* ← SE AJUSTA A LA ALTURA DEL PADRE */
+  height: 100%; /* ← SE AJUSTA A LA ALTURA DEL PADRE */
   display: flex;
   flex-direction: column;
   align-items: center;
   background: #ffffff;
   border-radius: 10px;
   padding: 10px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
 }
 
 /* TABLA */
@@ -131,14 +172,15 @@ onMounted(() => {
   border-spacing: 0;
   border: 1px solid #c8c6c6;
   border-radius: 6px;
-  font-family: "Outfit", sans-serif;
+  font-family: 'Outfit', sans-serif;
 }
 
 /* ENCABEZADO */
-.table-head, th {
+.table-head,
+th {
   background-color: #f5f2f2;
   color: #4d4a4a;
-  font-family: "Cal Sans", sans-serif;
+  font-family: 'Cal Sans', sans-serif;
   padding: 12px;
   border: 1px solid #c2bdbd;
   position: sticky;
@@ -150,7 +192,7 @@ td {
   border: 1px solid #dfd9d9;
   padding: 8px;
   text-align: center;
-  font-family: "Outfit", sans-serif;
+  font-family: 'Outfit', sans-serif;
 }
 
 .table-body {
@@ -171,12 +213,11 @@ td {
 /* COLUMNA DEL DETALLE */
 .detalle-container {
   width: 50%;
-  height: 100%;                /* ← MISMA ALTURA QUE LA TABLA */
-  overflow-y: auto;            /* ← SCROLL INTERNO */
+  height: 100%; /* ← MISMA ALTURA QUE LA TABLA */
+  overflow-y: auto; /* ← SCROLL INTERNO */
   background: #ffffff;
   border-radius: 10px;
   padding: 15px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
 }
-
 </style>

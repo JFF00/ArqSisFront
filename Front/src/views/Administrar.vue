@@ -3,7 +3,9 @@
     <!-- DEBUG: Token Display -->
     <div v-if="authStore.token" class="token-debug-box">
       <h3>🔑 Token de Acceso (Debug)</h3>
-      <p class="token-info">Usa este token en el header 'Authorization: Bearer ...' para probar la API</p>
+      <p class="token-info">
+        Usa este token en el header 'Authorization: Bearer ...' para probar la API
+      </p>
       <div class="token-controls">
         <textarea readonly :value="authStore.token" rows="2" class="token-area"></textarea>
         <button @click="copyToken" class="btn-copy">Copiar</button>
@@ -38,7 +40,9 @@
             <td>
               <div class="user-info">
                 <span class="user-name">{{ reserva.user?.nombreCompleto || 'Cargando...' }}</span>
-                <span class="user-email">{{ reserva.user?.email || formatUid(reserva.user_uid) }}</span>
+                <span class="user-email">{{
+                  reserva.user?.email || formatUid(reserva.user_uid)
+                }}</span>
               </div>
             </td>
             <td>{{ formatDate(reserva.start_time) }}</td>
@@ -47,8 +51,20 @@
               <span :class="['status-badge', reserva.status]">{{ reserva.status }}</span>
             </td>
             <td class="acciones">
-              <button v-if="reserva.status === 'pending'" class="btn aceptar" @click="aceptar(reserva.id)">Aceptar</button>
-              <button v-if="reserva.status === 'pending'" class="btn rechazar" @click="rechazar(reserva.id)">Rechazar</button>
+              <button
+                v-if="reserva.status === 'pending'"
+                class="btn aceptar"
+                @click="aceptar(reserva.id)"
+              >
+                Aceptar
+              </button>
+              <button
+                v-if="reserva.status === 'pending'"
+                class="btn rechazar"
+                @click="rechazar(reserva.id)"
+              >
+                Rechazar
+              </button>
             </td>
           </tr>
         </tbody>
@@ -67,7 +83,7 @@ import { APPROVE_RESERVATION, REJECT_RESERVATION } from '@/graphql/reservas/muta
 const authStore = useAuthStore()
 
 const { result, loading, error, refetch } = useQuery(LIST_RESERVATIONS, null, {
-  pollInterval: 1000 // Actualizar cada 1 segundo para mayor reactividad
+  pollInterval: 1000, // Actualizar cada 1 segundo para mayor reactividad
 })
 
 const { mutate: approveReservation } = useMutation(APPROVE_RESERVATION)
@@ -136,10 +152,22 @@ async function rechazar(id: number) {
   font-weight: bold;
   text-transform: uppercase;
 }
-.status-badge.pending { background-color: #fff3cd; color: #856404; }
-.status-badge.confirmed { background-color: #d4edda; color: #155724; }
-.status-badge.rejected { background-color: #f8d7da; color: #721c24; }
-.status-badge.processing { background-color: #cce5ff; color: #004085; }
+.status-badge.pending {
+  background-color: #fff3cd;
+  color: #856404;
+}
+.status-badge.confirmed {
+  background-color: #d4edda;
+  color: #155724;
+}
+.status-badge.rejected {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+.status-badge.processing {
+  background-color: #cce5ff;
+  color: #004085;
+}
 
 .token-debug-box {
   background-color: #f8f9fa;

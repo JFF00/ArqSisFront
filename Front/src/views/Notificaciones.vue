@@ -7,9 +7,9 @@
     </p>
 
     <div v-else class="listaNotificaciones">
-      <div 
-        v-for="(item, index) in notificaciones" 
-        :key="index" 
+      <div
+        v-for="(item, index) in notificaciones"
+        :key="index"
         class="notificacion"
         :class="item.estado"
       >
@@ -23,7 +23,7 @@
         <p class="notificacionDescripcion">{{ item.descripcion }}</p>
 
         <span class="estado">
-          {{ item.estado === "aprobada" ? "Aprobada" : "Rechazada" }}
+          {{ item.estado === 'aprobada' ? 'Aprobada' : 'Rechazada' }}
         </span>
       </div>
     </div>
@@ -36,26 +36,26 @@ import { ref } from 'vue'
 /* Ejemplo: puedes reemplazar esto con tus datos reales */
 const notificaciones = ref([
   {
-    titulo: "Solicitud sala 101",
-    descripcion: "Tu solicitud fue aprobada.",
-    estado: "aprobada",
-    fecha: "2025-01-12T14:30:00"
+    titulo: 'Solicitud sala 101',
+    descripcion: 'Tu solicitud fue aprobada.',
+    estado: 'aprobada',
+    fecha: '2025-01-12T14:30:00',
   },
   {
-    titulo: "Reserva sala reuniones",
-    descripcion: "Solicitud rechazada por disponibilidad.",
-    estado: "rechazada",
-    fecha: "2025-01-10T10:05:00"
-  }
+    titulo: 'Reserva sala reuniones',
+    descripcion: 'Solicitud rechazada por disponibilidad.',
+    estado: 'rechazada',
+    fecha: '2025-01-10T10:05:00',
+  },
 ])
 
 /* Función para mostrar la fecha en formato bonito */
 const formatearFecha = (fecha) => {
   const f = new Date(fecha)
-  return f.toLocaleDateString("es-CL", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric"
+  return f.toLocaleDateString('es-CL', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
   })
 }
 </script>
@@ -96,7 +96,7 @@ const formatearFecha = (fecha) => {
   display: flex;
   flex-direction: column;
   border: 1px solid #ddd;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* FECHA ESTILO */
