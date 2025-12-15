@@ -20,6 +20,8 @@ export const useAuthStore = defineStore('auth', () => {
 
   const isAuthenticated = computed(() => !!user.value);
   const isAdmin = computed(() => userRole.value?.toUpperCase() === 'ADMIN');
+  const isTrabajador = computed(() => userRole.value?.toUpperCase() === 'TRABAJADOR');
+  const canManage = computed(() => isAdmin.value || isTrabajador.value);
 
   // Inicializar el estado de autenticación
   const initAuth = () => {
@@ -142,6 +144,8 @@ export const useAuthStore = defineStore('auth', () => {
     loading,
     isAuthenticated,
     isAdmin,
+    isTrabajador,
+    canManage,
     initAuth,
     login,
     loginWithGoogle,

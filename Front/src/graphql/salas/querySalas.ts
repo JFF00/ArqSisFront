@@ -24,6 +24,10 @@ export const GET_ITEMS_PERDIDOS_POR_SALA = gql`
       fecha_hallazgo
       ubicacion
       reportado_por
+      reporter {
+        nombreCompleto
+        email
+      }
       estado
     }
   }

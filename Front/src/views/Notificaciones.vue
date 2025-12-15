@@ -1,9 +1,12 @@
 <template>
   <div class="contenedorPrincipal">
-    <h1 class="title">Notificaciones</h1>
+    <h1 class="title">Mis Reservas</h1>
 
-    <p v-if="notificaciones.length === 0" class="sinNotificaciones">
-      No tienes notificaciones por ahora.
+    <div v-if="loading" class="loading">Cargando reservas...</div>
+    <div v-else-if="error" class="error">Error al cargar reservas: {{ error.message }}</div>
+
+    <p v-else-if="notificaciones.length === 0" class="sinNotificaciones">
+      No tienes reservas registradas.
     </p>
 
     <div v-else class="listaNotificaciones">
@@ -11,52 +14,131 @@
         v-for="(item, index) in notificaciones"
         :key="index"
         class="notificacion"
-        :class="item.estado"
+        :class="getClassForStatus(item.status)"
       >
         <!-- FECHA A LA IZQUIERDA -->
         <span class="fechaNotificacion">
-          {{ formatearFecha(item.fecha) }}
+          Creada: {{ formatearFecha(item.created_at) }}
         </span>
 
-        <h3 class="notificacionTitulo">{{ item.titulo }}</h3>
+        <h3 class="notificacionTitulo">Reserva Sala {{ item.room_id }}</h3>
 
-        <p class="notificacionDescripcion">{{ item.descripcion }}</p>
+        <p class="notificacionDescripcion">
+          <strong>Propósito:</strong> {{ item.purpose }}<br/>
+          <strong>Horario:</strong> {{ formatearFechaHora(item.start_time) }} - {{ formatearFechaHora(item.end_time) }}
+        </p>
 
         <span class="estado">
-          {{ item.estado === 'aprobada' ? 'Aprobada' : 'Rechazada' }}
+          Estado: {{ traducirEstado(item.status) }}
         </span>
+
+        <button 
+          v-if="item.status === 'pending'" 
+          class="btn-cancelar"
+          @click="cancelar(item.id)"
+        >
+          Cancelar
+        </button>
       </div>
     </div>
   </div>
 </template>
 
-<script setup>
-import { ref } from 'vue'
+<script setup lang="ts">
+import { computed, watch } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import { useQuery, useMutation } from '@vue/apollo-composable'
+import { GET_MY_RESERVATIONS } from '@/graphql/reservas/queryReservas'
+import { CANCEL_RESERVATION } from '@/graphql/reservas/mutationReservas'
 
-/* Ejemplo: puedes reemplazar esto con tus datos reales */
-const notificaciones = ref([
+const authStore = useAuthStore()
+
+// Habilitar la query solo si tenemos usuario
+const enabled = computed(() => !!authStore.user?.uid)
+
+const { result, loading, error, refetch } = useQuery(
+  GET_MY_RESERVATIONS,
+  () => ({
+    input: {
+      user_uid: authStore.user?.uid
+    }
+  }),
   {
-    titulo: 'Solicitud sala 101',
-    descripcion: 'Tu solicitud fue aprobada.',
-    estado: 'aprobada',
-    fecha: '2025-01-12T14:30:00',
-  },
-  {
-    titulo: 'Reserva sala reuniones',
-    descripcion: 'Solicitud rechazada por disponibilidad.',
-    estado: 'rechazada',
-    fecha: '2025-01-10T10:05:00',
-  },
-])
+    enabled,
+    pollInterval: 2000 // Actualizar cada 2 segundos para ver cambios de estado
+  }
+)
+
+const { mutate: cancelReservationMutation } = useMutation(CANCEL_RESERVATION)
+
+async function cancelar(id: number) {
+  if (!confirm('¿Estás seguro de que deseas cancelar esta reserva?')) return
+
+  try {
+    await cancelReservationMutation({ id })
+    alert('Reserva cancelada correctamente')
+    refetch()
+  } catch (e) {
+    console.error(e)
+    alert('Error al cancelar reserva')
+  }
+}
+
+// Mapear los resultados a la estructura que usamos en el template
+const notificaciones = computed(() => {
+  const reservas = result.value?.listReservations?.reservations || []
+  // Ordenar por fecha de creación descendente (más recientes primero)
+  return [...reservas].sort((a: any, b: any) => 
+    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  )
+})
+
+// Recargar cuando cambia el usuario
+watch(() => authStore.user?.uid, (newUid) => {
+  if (newUid) {
+    refetch()
+  }
+})
 
 /* Función para mostrar la fecha en formato bonito */
-const formatearFecha = (fecha) => {
+const formatearFecha = (fecha: string) => {
+  if (!fecha) return ''
   const f = new Date(fecha)
   return f.toLocaleDateString('es-CL', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
   })
+}
+
+const formatearFechaHora = (fecha: string) => {
+  if (!fecha) return ''
+  const f = new Date(fecha)
+  return f.toLocaleString('es-CL', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const getClassForStatus = (status: string) => {
+  switch (status?.toLowerCase()) {
+    case 'approved': return 'aprobada'
+    case 'rejected': return 'rechazada'
+    case 'pending': return 'pendiente'
+    default: return ''
+  }
+}
+
+const traducirEstado = (status: string) => {
+  switch (status?.toLowerCase()) {
+    case 'approved': return 'Aprobada'
+    case 'rejected': return 'Rechazada'
+    case 'pending': return 'Pendiente'
+    case 'processing': return 'Procesando'
+    default: return status
+  }
 }
 </script>
 
@@ -80,6 +162,15 @@ const formatearFecha = (fecha) => {
   color: #555;
 }
 
+.loading, .error {
+  margin: 1rem;
+  font-weight: bold;
+}
+
+.error {
+  color: red;
+}
+
 /* Lista */
 .listaNotificaciones {
   width: 100%;
@@ -97,6 +188,7 @@ const formatearFecha = (fecha) => {
   flex-direction: column;
   border: 1px solid #ddd;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  background-color: white;
 }
 
 /* FECHA ESTILO */
@@ -130,5 +222,24 @@ const formatearFecha = (fecha) => {
 
 .rechazada {
   border-left: 6px solid #e53935;
+}
+
+.pendiente {
+  border-left: 6px solid #ff9800;
+}
+
+.btn-cancelar {
+  margin-top: 10px;
+  padding: 8px 16px;
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.btn-cancelar:hover {
+  background-color: #d32f2f;
 }
 </style>

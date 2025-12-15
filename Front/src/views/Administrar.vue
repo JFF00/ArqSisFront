@@ -22,7 +22,7 @@
         <thead>
           <tr>
             <!-- <th>ID</th> -->
-            <th>Sala (ID)</th>
+            <!-- <th>Sala (ID)</th> -->
             <th>Motivo</th>
             <th>Usuario</th>
             <th>Inicio</th>
@@ -35,7 +35,7 @@
         <tbody>
           <tr v-for="reserva in reservas" :key="reserva.id">
             <!-- <td>{{ reserva.id }}</td> -->
-            <td>{{ reserva.room_id }}</td>
+            <!-- <td>{{ reserva.room_id }}</td> -->
             <td>{{ reserva.purpose }}</td>
             <td>
               <div class="user-info">
@@ -50,21 +50,23 @@
             <td>
               <span :class="['status-badge', reserva.status]">{{ reserva.status }}</span>
             </td>
-            <td class="acciones">
-              <button
-                v-if="reserva.status === 'pending'"
-                class="btn aceptar"
-                @click="aceptar(reserva.id)"
-              >
-                Aceptar
-              </button>
-              <button
-                v-if="reserva.status === 'pending'"
-                class="btn rechazar"
-                @click="rechazar(reserva.id)"
-              >
-                Rechazar
-              </button>
+            <td>
+              <div class="acciones-container">
+                <button
+                  v-if="reserva.status === 'pending'"
+                  class="btn aceptar"
+                  @click="aceptar(reserva.id)"
+                >
+                  Aceptar
+                </button>
+                <button
+                  v-if="reserva.status === 'pending'"
+                  class="btn rechazar"
+                  @click="rechazar(reserva.id)"
+                >
+                  Rechazar
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -250,7 +252,7 @@ th {
   font-weight: bold;
 }
 
-.acciones {
+.acciones-container {
   display: flex;
   gap: 6px;
   justify-content: center;

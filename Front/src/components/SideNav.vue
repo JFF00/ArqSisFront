@@ -3,8 +3,8 @@
     <header class="sidebar">
       <RouterLink to="/" class="link">Reservas</RouterLink>
       <RouterLink to="/salas" class="link">Detalle salas </RouterLink>
-      <RouterLink to="/notificaciones" class="link">Notificaciones</RouterLink>
-      <RouterLink v-if="authStore.isAdmin" to="/admin" class="link">Administrar</RouterLink>
+      <RouterLink to="/notificaciones" class="link">Mis Reservas</RouterLink>
+      <RouterLink v-if="authStore.canManage" to="/admin" class="link">Administrar</RouterLink>
       <RouterLink v-if="authStore.isAdmin" to="/adminsala" class="link">Salas</RouterLink>
       <button @click="handleLogout" class="link logout-btn">Cerrar Sesión</button>
     </header>

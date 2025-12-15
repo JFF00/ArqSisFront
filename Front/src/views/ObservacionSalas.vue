@@ -2,40 +2,55 @@
   <div class="page">
     <h1 class="page-title">Observaciones por sala</h1>
 
-    <!-- Selector sala -->
-    <div class="selector">
-      <label>Selecciona una sala</label>
-      <select v-model="opcionSeleccionada">
-        <option value="">-- Selecciona --</option>
-        <option v-for="sala in salas" :key="sala.id" :value="sala.id">
-          {{ sala.nombre }}
-        </option>
-      </select>
+    <!-- Selector sala y Controles -->
+    <div class="controls-bar">
+      <div class="selector">
+        <label>Selecciona una sala</label>
+        <select v-model="opcionSeleccionada">
+          <option value="">-- Selecciona --</option>
+          <option v-for="sala in salas" :key="sala.id" :value="sala.id">
+            {{ sala.nombre }}
+          </option>
+        </select>
+      </div>
+
+      <div v-if="authStore.canManage && opcionSeleccionada" class="history-toggle">
+        <button 
+          class="btn-history" 
+          :class="{ active: mostrarHistorial }"
+          @click="mostrarHistorial = !mostrarHistorial"
+        >
+          {{ mostrarHistorial ? 'Volver a Activos' : 'Ver Historial' }}
+        </button>
+      </div>
     </div>
 
     <div v-if="opcionSeleccionada" class="layout">
       <!-- PANEL OBJETOS PERDIDOS -->
       <section class="panel">
-        <h2 class="panel-title">🧳 Objetos perdidos</h2>
+        <h2 class="panel-title">
+          {{ mostrarHistorial ? 'Historial Objetos' : 'Objetos perdidos' }}
+        </h2>
 
         <div class="cards">
-          <div v-for="item in itemsPerdidos" :key="item.id" class="card">
+          <div v-for="item in itemsFiltrados" :key="item.id" class="card">
             <h3>{{ item.nombre }}</h3>
             <p>{{ item.descripcion }}</p>
 
             <div class="info">
-              <span v-if="item.fecha"> 📅 {{ formatFecha(item.fecha) }} </span>
+              <span v-if="item.fecha"> Fecha: {{ formatFecha(item.fecha) }} </span>
 
-              <span v-if="item.ubicacion"> 📍 {{ item.ubicacion }} </span>
+              <span v-if="item.ubicacion"> Ubicación: {{ item.ubicacion }} </span>
 
-              <span v-if="item.reportado_por"> 👤 Reportado por: {{ item.reportado_por }} </span>
+              <span v-if="item.reporter"> Reportado por: {{ item.reporter.nombreCompleto }} </span>
+              <span v-else-if="item.reportado_por"> Reportado por: {{ item.reportado_por }} </span>
             </div>
 
-            <div class="meta">
-              <span class="tag">
+            <div class="meta-joined">
+              <span class="cat-part">
                 {{ formatCategoriaItem(item.categoria) }}
               </span>
-              <span class="tag estado">
+              <span class="status-part">
                 {{ formatEstadoItem(item.estado) }}
               </span>
             </div>
@@ -46,22 +61,24 @@
                 class="btn-recuperado"
                 @click="marcarComoRecuperado(Number(item.id))"
               >
-                ✔ Marcar como recuperado
+                Marcar como recuperado
               </button>
             </div>
           </div>
 
-          <p v-if="itemsPerdidos.length === 0" class="empty">No hay objetos registrados</p>
+          <p v-if="itemsFiltrados.length === 0" class="empty">
+            {{ mostrarHistorial ? 'No hay objetos en el historial' : 'No hay objetos registrados' }}
+          </p>
         </div>
 
-        <!-- BOTÓN FIJO -->
-        <div class="sticky-footer">
+        <!-- BOTÓN FIJO (Solo visible en vista activa) -->
+        <div class="sticky-footer" v-if="!mostrarHistorial">
           <button class="btn-primary" @click="mostrarFormItem = !mostrarFormItem">
             + Registrar objeto perdido
           </button>
 
           <div v-if="mostrarFormItem" class="form-box">
-            <input v-model="nuevoItem.nombre" placeholder="Nombre" />
+            <input v-model="nuevoItem.nombre" placeholder="Nombre del objeto" />
             <textarea v-model="nuevoItem.descripcion" placeholder="Descripción" />
 
             <select v-model="nuevoItem.categoria">
@@ -82,10 +99,12 @@
 
       <!-- PANEL OBSERVACIONES  -->
       <section class="panel">
-        <h2 class="panel-title">📝 Observaciones</h2>
+        <h2 class="panel-title">
+          {{ mostrarHistorial ? 'Historial Observaciones' : 'Observaciones' }}
+        </h2>
 
         <div class="cards">
-          <div v-for="nota in notas" :key="nota.id" class="card">
+          <div v-for="nota in notasFiltradas" :key="nota.id" class="card">
             <h3>{{ nota.titulo }}</h3>
             <p>{{ nota.contenido }}</p>
 
@@ -102,16 +121,18 @@
             </div>
             <div class="card-footer" v-if="authStore.isAdmin && !nota.resuelta">
               <button class="btn-resolver" @click="marcarNotaComoResuelta(Number(nota.id))">
-                ✔ Resolver observación
+                Resolver observación
               </button>
             </div>
           </div>
 
-          <p v-if="notas.length === 0" class="empty">No hay observaciones</p>
+          <p v-if="notasFiltradas.length === 0" class="empty">
+            {{ mostrarHistorial ? 'No hay observaciones resueltas' : 'No hay observaciones pendientes' }}
+          </p>
         </div>
 
-        <!-- BOTÓN FIJO -->
-        <div class="sticky-footer">
+        <!-- BOTÓN FIJO (Solo visible en vista activa) -->
+        <div class="sticky-footer" v-if="!mostrarHistorial">
           <button class="btn-primary" @click="mostrarFormNota = !mostrarFormNota">
             + Crear observación
           </button>
@@ -142,7 +163,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { apolloClient } from '@/apollo'
 import {
   GET_SALAS,
@@ -164,8 +185,24 @@ const notas = ref<Nota[]>([])
 const opcionSeleccionada = ref('')
 const mostrarFormNota = ref(false)
 const mostrarFormItem = ref(false)
+const mostrarHistorial = ref(false)
 
 const authStore = useAuthStore()
+
+// Computed para filtrar items y notas
+const itemsFiltrados = computed(() => {
+  if (mostrarHistorial.value && authStore.canManage) {
+    return itemsPerdidos.value.filter(i => i.estado?.toLowerCase() === 'reclamado')
+  }
+  return itemsPerdidos.value.filter(i => i.estado?.toLowerCase() !== 'reclamado')
+})
+
+const notasFiltradas = computed(() => {
+  if (mostrarHistorial.value && authStore.canManage) {
+    return notas.value.filter(n => n.resuelta)
+  }
+  return notas.value.filter(n => !n.resuelta)
+})
 
 const formatCategoriaItem = (value: string): string => {
   const map: Record<string, string> = {
@@ -272,10 +309,10 @@ const crearNota = async () => {
     resetNota()
     mostrarFormNota.value = false
 
-    alert('✅ Observación creada correctamente')
+    alert('Observación creada correctamente')
   } catch (error) {
     console.error(error)
-    alert('❌ Error al crear la observación')
+    alert('Error al crear la observación')
   }
 }
 const crearItemPerdido = async () => {
@@ -296,7 +333,7 @@ const crearItemPerdido = async () => {
     resetItem()
     mostrarFormItem.value = false
 
-    alert('✅ Objeto perdido registrado correctamente')
+    alert('Objeto perdido registrado correctamente')
   } catch (error) {
     console.error(error)
     alert('❌ Error al registrar el objeto')
@@ -392,12 +429,49 @@ onMounted(fetchSalas)
   margin-bottom: 20px;
 }
 
-/* SELECTOR */
-.selector {
-  max-width: 420px;
+/* CONTROLES */
+.controls-bar {
+  max-width: 800px;
   margin: 0 auto 25px;
   display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px;
+  background: white;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* SELECTOR */
+.selector {
+  flex: 1;
+  display: flex;
   flex-direction: column;
+  gap: 6px;
+}
+
+.btn-history {
+  background-color: #f3f4f6;
+  color: #4b5563;
+  border: 1px solid #d1d5db;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  transition: all 0.2s;
+  height: 42px; /* Para alinear con el select */
+}
+
+.btn-history:hover {
+  background-color: #e5e7eb;
+}
+
+.btn-history.active {
+  background-color: #374151;
+  color: white;
+  border-color: #374151;
 }
 
 .selector select {
@@ -470,10 +544,33 @@ onMounted(fetchSalas)
 }
 
 /* TAGS */
-.meta {
+.meta-joined {
+  display: inline-flex;
+  align-items: stretch;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.75rem;
+  margin-top: 4px;
+}
+
+.cat-part {
+  background-color: #f3f4f6;
+  color: #374151;
+  padding: 4px 12px;
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  align-items: center;
+  border-right: 1px solid #e5e7eb;
+}
+
+.status-part {
+  background-color: #dbeafe;
+  color: #1e40af;
+  padding: 4px 12px;
+  display: flex;
+  align-items: center;
+  font-weight: 500;
 }
 
 .tag {
@@ -481,6 +578,11 @@ onMounted(fetchSalas)
   padding: 4px 10px;
   border-radius: 999px;
   background: #e5e7eb;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1.2;
+  height: 24px;
 }
 
 .estado {
