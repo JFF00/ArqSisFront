@@ -15,15 +15,15 @@
         <tbody>
           <tr v-for="bloque in bloques" :key="bloque">
             <th>{{ bloque }}</th>
-
             <td v-for="dia in dias" :key="dia">
               <div
-                :class="['cuadro-estado', disponibilidad[bloque][dia]]"
-                @click="
-                  disponibilidad[bloque][dia] === 'disponible' && seleccionarBloque(bloque, dia)
-                "
+                :class="['cuadro-estado', disponibilidadColor[bloque]?.[dia] || 'disponible']"
+                @click="seleccionarBloqueSiDisponible(bloque, dia)"
                 :style="{
-                  cursor: disponibilidad[bloque][dia] === 'disponible' ? 'pointer' : 'not-allowed',
+                  cursor:
+                    (disponibilidadColor[bloque]?.[dia] || 'disponible') === 'disponible'
+                      ? 'pointer'
+                      : 'not-allowed',
                 }"
               ></div>
             </td>
@@ -32,14 +32,12 @@
       </table>
     </div>
 
-    <!-- Mostrar lo seleccionado -->
     <div v-if="seleccion.bloque" class="seleccion-info">
-       Seleccionaste: <strong>{{ seleccion.sala }}</strong> — Bloque
+      Seleccionaste: <strong>{{ seleccion.sala }}</strong> — Bloque
       <strong>{{ seleccion.bloque }}</strong> — Día
       <strong>{{ seleccion.dia }}</strong>
     </div>
 
-    <!-- Selector de fechas -->
     <div v-if="fechasDisponibles.length" class="fecha-selector">
       <h3 class="select">Selecciona una fecha y el motivo</h3>
 
@@ -62,21 +60,32 @@
     </button>
   </div>
 </template>
-<script setup lang="ts">
-import { ref } from 'vue'
-import type { Sala } from '@/interfaces/salas'
-import { useMutation } from '@vue/apollo-composable'
-import { CREATE_RESERVATION } from '@/graphql/reservas/mutationReservas'
 
-const { sala, disponibilidad } = defineProps<{
-  sala: Sala | null
-  disponibilidad: any
-}>()
+<script setup lang="ts">
+import { ref, reactive, computed } from 'vue'
+import type { Sala } from '@/interfaces/salas'
+import { useMutation, useQuery } from '@vue/apollo-composable'
+import { CREATE_RESERVATION } from '@/graphql/reservas/mutationReservas'
+import { LIST_RESERVATIONS } from '@/graphql/reservas/queryReservas'
 
 type Dia = 'lunes' | 'martes' | 'miercoles' | 'jueves' | 'viernes'
 type Bloque = 'A' | 'B' | 'C' | 'D' | 'E' | 'F'
 
-const bloquesHorarios: Record<string, { start: string; end: string }> = {
+type Reserva = {
+  id: number
+  user_uid: string
+  user: { nombreCompleto: string; email: string }
+  status: 'approved' | 'pending'
+  purpose: string
+  room_id: number
+  start_time: string
+  end_time: string
+  created_at: string
+}
+
+const { sala } = defineProps<{ sala: Sala | null }>()
+
+const bloquesHorarios: Record<Bloque, { start: string; end: string }> = {
   A: { start: '08:10', end: '09:40' },
   B: { start: '09:55', end: '11:25' },
   C: { start: '11:40', end: '13:10' },
@@ -90,23 +99,39 @@ const bloques: Bloque[] = ['A', 'B', 'C', 'D', 'E', 'F']
 
 const fechasDisponibles = ref<string[]>([])
 const fechaSeleccionada = ref('')
-
 const motivoSeleccionado = ref('')
-// Guarda la selección hecha por el usuario
-const seleccion = ref({
-  sala: '',
-  bloque: '',
-  dia: '',
-})
 
+const seleccion = reactive({ sala: '', bloque: '', dia: '' })
+
+// --- QUERY ---
+const { result: reservasResult, refetch } = useQuery(LIST_RESERVATIONS, { input: {} })
+
+// --- MUTATION ---
 const { mutate: createReservation, onDone, onError } = useMutation(CREATE_RESERVATION)
 
+function isThisWeek(date: Date): boolean {
+  const hoy = new Date()
+  const primerDiaSemana = new Date(hoy)
+  primerDiaSemana.setDate(hoy.getDate() - hoy.getDay() + 1) // lunes
+  primerDiaSemana.setHours(0, 0, 0, 0)
+
+  const ultimoDiaSemana = new Date(primerDiaSemana)
+  ultimoDiaSemana.setDate(primerDiaSemana.getDate() + 6)
+  ultimoDiaSemana.setHours(23, 59, 59, 999)
+
+  return date >= primerDiaSemana && date <= ultimoDiaSemana
+}
+
 onDone((result) => {
-  alert(`Reserva creada con éxito! ID: ${result.data.createReservation.id} - Estado: ${result.data.createReservation.status}`)
-  // Reset selection
+  alert(
+    `Reserva creada con éxito! ID: ${result.data.createReservation.id} - Estado: ${result.data.createReservation.status}`,
+  )
   fechaSeleccionada.value = ''
   motivoSeleccionado.value = ''
-  seleccion.value = { sala: '', bloque: '', dia: '' }
+  seleccion.sala = ''
+  seleccion.bloque = ''
+  seleccion.dia = ''
+  refetch()
 })
 
 onError((error) => {
@@ -114,16 +139,18 @@ onError((error) => {
   alert('Error al crear la reserva: ' + error.message)
 })
 
-function seleccionarBloque(bloque: Bloque, dia: Dia) {
-  seleccion.value = {
-    sala: sala?.nombre || '',
-    bloque,
-    dia,
-  }
-
-  fechasDisponibles.value = obtenerProximasFechas(dia)
-  console.log('SELECCIÓN:', seleccion.value)
+function seleccionarBloqueSiDisponible(bloque: Bloque, dia: Dia) {
+  const estado = disponibilidadColor.value?.[bloque]?.[dia] || 'disponible'
+  if (estado === 'disponible') seleccionarBloque(bloque, dia)
 }
+
+function seleccionarBloque(bloque: Bloque, dia: Dia) {
+  seleccion.sala = sala?.nombre || ''
+  seleccion.bloque = bloque
+  seleccion.dia = dia
+  fechasDisponibles.value = obtenerProximasFechas(dia)
+}
+
 function formatearFechaLocal(date: Date): string {
   const y = date.getFullYear()
   const m = String(date.getMonth() + 1).padStart(2, '0')
@@ -132,47 +159,36 @@ function formatearFechaLocal(date: Date): string {
 }
 
 function obtenerProximasFechas(dia: Dia, cantidad = 4): string[] {
-  const diasIndice: Record<string, number> = {
+  const diasIndice: Record<Dia, number> = {
     lunes: 1,
     martes: 2,
     miercoles: 3,
     jueves: 4,
     viernes: 5,
   }
-
   const hoy = new Date()
-  const hoyDia = hoy.getDay() // 0 domingo, 1 lunes...
-
+  const hoyDia = hoy.getDay()
   const targetIndex = diasIndice[dia]
+  if (targetIndex === undefined) return []
 
-    if(targetIndex==undefined){
-      console.warn("Día inválido para reservar",dia)
-      return[]
-    }
   let diff = targetIndex - hoyDia
-  if (diff < 0) diff += 7 // siguiente semana si ya pasó
+  if (diff < 0) diff += 7
 
   const fechas: string[] = []
-
   for (let i = 0; i < cantidad; i++) {
     const fecha = new Date(hoy)
     fecha.setDate(hoy.getDate() + diff + i * 7)
-    fechas.push(formatearFechaLocal(fecha)) // ← YA NO USA UTC
+    fechas.push(formatearFechaLocal(fecha))
   }
-
   return fechas
 }
 
 function enviarSolicitud() {
-  if (!fechaSeleccionada.value || !seleccion.value.bloque || !sala) return
+  if (!fechaSeleccionada.value || !seleccion.bloque || !sala) return
 
-  const bloqueInfo = bloquesHorarios[seleccion.value.bloque]
-  if (!bloqueInfo) {
-    alert('Bloque horario no válido')
-    return
-  }
+  const bloqueInfo = bloquesHorarios[seleccion.bloque as Bloque]
+  if (!bloqueInfo) return
 
-  // Crear fechas en UTC para enviar al backend
   const startDateTime = new Date(`${fechaSeleccionada.value}T${bloqueInfo.start}:00`)
   const endDateTime = new Date(`${fechaSeleccionada.value}T${bloqueInfo.end}:00`)
 
@@ -182,9 +198,64 @@ function enviarSolicitud() {
       start_time: startDateTime.toISOString(),
       end_time: endDateTime.toISOString(),
       purpose: motivoSeleccionado.value || 'Reserva desde Front',
-    }
+    },
   })
 }
+
+// --- Computed ---
+const disponibilidadColor = computed(() => {
+  const reservas: Reserva[] = reservasResult.value?.listReservations?.reservations || []
+  const disponibilidad: Record<Bloque, Record<Dia, string>> = {} as Record<
+    Bloque,
+    Record<Dia, string>
+  >
+
+  reservas.forEach((r) => {
+    if (!sala || r.room_id !== Number(sala.id)) return
+
+    const fecha = new Date(r.start_time)
+    if (!isThisWeek(fecha)) return // <- Filtramos solo esta semana
+
+    const diaMap: Record<number, Dia> = {
+      1: 'lunes',
+      2: 'martes',
+      3: 'miercoles',
+      4: 'jueves',
+      5: 'viernes',
+    }
+    const dia = diaMap[fecha.getDay()]
+    if (!dia) return
+
+    const hora = fecha.getHours()
+    const min = fecha.getMinutes()
+
+    let bloque: Bloque | undefined
+    for (const [b, h] of Object.entries(bloquesHorarios)) {
+      const [startH, startM] = h.start.split(':').map(Number)
+      const [endH, endM] = h.end.split(':').map(Number)
+      if (startH === undefined || startM === undefined || endH === undefined || endM === undefined)
+        continue
+      const start = startH * 60 + startM
+      const end = endH * 60 + endM
+      const actual = hora * 60 + min
+      if (actual >= start && actual < end) {
+        bloque = b as Bloque
+        break
+      }
+    }
+
+    if (!bloque) return
+
+    if (!disponibilidad[bloque]) disponibilidad[bloque] = {} as Record<Dia, string>
+
+    if (r.status === 'approved') disponibilidad[bloque][dia] = 'ocupado'
+    else if (r.status === 'pending' && disponibilidad[bloque][dia] !== 'ocupado')
+      disponibilidad[bloque][dia] = 'reservado'
+    else if (!disponibilidad[bloque][dia]) disponibilidad[bloque][dia] = 'disponible'
+  })
+
+  return disponibilidad
+})
 </script>
 
 <style scoped>
@@ -225,7 +296,7 @@ function enviarSolicitud() {
   border-radius: 10px;
   overflow: hidden;
   font-size: 0.95rem;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 /* HEADERS */
@@ -256,9 +327,15 @@ td {
 }
 
 /* COLORES DE ESTADO */
-.disponible { background-color: #49b86c; }
-.ocupado    { background-color: #ef5350; }
-.reservado  { background-color: #ffb74d; }
+.disponible {
+  background-color: #49b86c;
+}
+.ocupado {
+  background-color: #ef5350;
+}
+.reservado {
+  background-color: #ffb74d;
+}
 
 /* INFO DE SELECCIÓN */
 .seleccion-info {
@@ -314,7 +391,9 @@ select:focus {
   border: none;
   border-radius: 8px;
   cursor: pointer;
-  transition: background 0.2s ease, transform 0.1s ease;
+  transition:
+    background 0.2s ease,
+    transform 0.1s ease;
 }
 
 .btn-enviar:hover {
@@ -324,5 +403,4 @@ select:focus {
 .btn-enviar:active {
   transform: scale(0.97);
 }
-
 </style>
