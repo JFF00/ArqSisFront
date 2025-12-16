@@ -57,7 +57,7 @@
             <!-- BOTÓN RECUPERADO -->
             <div class="card-footer">
               <button
-                v-if="authStore.user?.uid === item.reportado_por && item.estado !== 'reclamado'"
+                v-if="authStore.canManage && item.estado !== 'reclamado'"
                 class="btn-recuperado"
                 @click="marcarComoRecuperado(Number(item.id))"
               >
